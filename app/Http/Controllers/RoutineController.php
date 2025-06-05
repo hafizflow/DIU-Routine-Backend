@@ -8,7 +8,6 @@ use App\Models\Routine;
 use App\Services\PdfParserService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Support\Facades\Storage;
-use Smalot\PdfParser\Parser;
 
 class RoutineController extends Controller
 {
@@ -17,8 +16,15 @@ class RoutineController extends Controller
         $department = $request->input('department');
         $section = $request->input('section');
 
+        // Generate section variations (base, base1, base2)
+        $sections = [
+            $section,
+            $section . '1',
+            $section . '2'
+        ];
+
         $routine = Routine::where('department', $department)
-            ->where('section', $section)
+            ->whereIn('section', $sections)
             ->get(['day', 'start_time', 'end_time', 'course_code', 'room', 'teacher_initials'])
             ->groupBy('day')
             ->map(function ($daySchedule) {
