@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers;
 
+use App\Actions\ParsePdfTableAction;
 use App\Http\Requests\RoutineRequest;
 use App\Http\Requests\RoutineImportRequest;
 use App\Models\Routine;
@@ -75,8 +76,12 @@ class RoutineController extends Controller
                 ], 500);
             }
 
-            $parserService = new PdfParserService();
-            $schedule = $parserService->parseRoutine($fullPath);
+//            $parserService = new PdfParserService();
+//            $schedule = $parserService->parseRoutine($fullPath);
+
+            $action = new ParsePdfTableAction();
+            $schedule = $action->execute(storage_path('app/routine-1-2.pdf'));
+
 
             // Clear existing records (optional)
             Routine::truncate();

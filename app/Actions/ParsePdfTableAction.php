@@ -1,0 +1,103 @@
+<?php
+
+namespace App\Actions;
+
+use JetBrains\PhpStorm\NoReturn;
+
+class ParsePdfTableAction
+{
+    public function execute($path)
+    {
+        $jarFilePath = base_path('tabula/tabula.jar');
+        $csvData = shell_exec("java -jar {$jarFilePath} -p all -f CSV $path");
+
+        // parse CSV data into an array
+        $lines = explode("\n", trim($csvData));
+        $table = [];
+
+        foreach ($lines as $line) {
+            $row = str_getcsv($line);
+            if (count($row) > 1) {
+                $table[] = $row;
+            }
+        }
+
+
+        $currentDay = null;
+        $data = [];
+        $timeSlot = [
+            [
+                'start_time' => '08:30',
+                'end_time' => '10:00'
+            ],
+            [
+                'start_time' => '10:00',
+                'end_time' => '11:30'
+            ],
+            [
+                'start_time' => '11:30',
+                'end_time' => '01:00'
+            ],
+            [
+                'start_time' => '01:00',
+                'end_time' => '02:30'
+            ],
+            [
+                'start_time' => '02:30',
+                'end_time' => '04:00'
+            ],
+            [
+                'start_time' => '04:00',
+                'end_time' => '05:30'
+            ]
+        ];
+
+        foreach ($table as $row) {
+            if ($this->isDayRow($row)) {
+                $currentDay = $row[0];
+                continue;
+            }
+
+            if ($this->isTimeColumn($row) || $this->isHeadingColumn($row)) {
+                continue;
+            }
+
+            collect($row)->chunk(3)->map(function ($item) {
+                return $item->values();
+            })->map(function ($item, $index) use ($currentDay, $timeSlot) {
+                return [
+                    'room' => $item[0] ?? null,
+                    'course' => $item[1] ?? null,
+                    'teacher' => $item[2] ?? null,
+                    'day' => $currentDay,
+                    'start_time' => $timeSlot[$index]['start_time'] ?? null,
+                    'end_time' => $timeSlot[$index]['end_time'] ?? null,
+                ];
+            })->each(function ($item) use (&$data) {
+                $data[] = $item;
+            });
+        }
+
+        dd($data);
+
+    }
+
+    private function isDayRow(array $row): bool
+    {
+        $validDay = ['SATURDAY', 'SUNDAY', 'MONDAY', 'TUESDAY', 'WEDNESDAY', 'THURSDAY', 'FRIDAY'];
+
+        return in_array(strtoupper($row[0]), $validDay);
+    }
+
+    private function isTimeColumn($row): bool
+    {
+        return $row[0] === "08:30-10:00";
+    }
+
+    private function isHeadingColumn($row): bool
+    {
+        return $row[0] === "Room";
+    }
+
+
+}
