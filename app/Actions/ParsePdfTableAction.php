@@ -22,7 +22,6 @@ class ParsePdfTableAction
             }
         }
 
-
         $currentDay = null;
         $data = [];
         $timeSlot = [
@@ -58,33 +57,36 @@ class ParsePdfTableAction
                 continue;
             }
 
-            if ($this->isTimeColumn($row) || $this->isHeadingColumn($row)) {
+            if ($this->isTimeColumn($row) || $this->isHeadingColumn($row) || $this->isUnwantedColumn($row) || $this->isEmptyColumn($row)) {
                 continue;
             }
 
-            collect($row)->chunk(3)->map(function ($item) {
-                return $item->values();
-            })->map(function ($item, $index) use ($currentDay, $timeSlot) {
-                return [
-                    'room' => $item[0] ?? null,
-                    'course' => $item[1] ?? null,
-                    'teacher' => $item[2] ?? null,
-                    'day' => $currentDay,
-                    'start_time' => $timeSlot[$index]['start_time'] ?? null,
-                    'end_time' => $timeSlot[$index]['end_time'] ?? null,
-                ];
-            })->each(function ($item) use (&$data) {
-                $data[] = $item;
-            });
+            collect($row)
+                ->chunk(3)
+                ->map(function ($item) {
+                    return $item->values();
+                })
+                ->map(function ($item, $index) use ($currentDay, $timeSlot) {
+                    return [
+                        'room' => $item[0] ?? null,
+                        'course' => ($value = strstr($item[1], '(', true)) !== false ? $value : null,
+                        'section' => ($value = strstr($item[1], '(')) !== false ? trim($value, '()') : null,
+                        'teacher' => ($value = $item[2]) !== "" ? $value : null,
+                        'day' => $currentDay,
+                        'start_time' => $timeSlot[$index]['start_time'] ?? null,
+                        'end_time' => $timeSlot[$index]['end_time'] ?? null,
+                    ];
+                })->each(function ($item) use (&$data) {
+                    $data[] = $item;
+                });
         }
 
-        dd($data);
-
+        return $data;
     }
 
     private function isDayRow(array $row): bool
     {
-        $validDay = ['SATURDAY', 'SUNDAY', 'MONDAY', 'TUESDAY', 'WEDNESDAY', 'THURSDAY', 'FRIDAY'];
+        $validDay = ['SATURDAY', 'SUNDAY', 'MONDAY', 'TUESDAY', 'WEDNESDAY', 'THURSDAY'];
 
         return in_array(strtoupper($row[0]), $validDay);
     }
@@ -99,5 +101,13 @@ class ParsePdfTableAction
         return $row[0] === "Room";
     }
 
+    private function isUnwantedColumn($row): bool
+    {
+        return strlen($row[0] ?? '') >= 9 && count(array_filter(array_slice($row, 1))) === 0;
+    }
 
+    private function isEmptyColumn($row): bool
+    {
+        return count(array_filter($row)) === 0;
+    }
 }

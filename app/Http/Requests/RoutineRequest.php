@@ -14,7 +14,6 @@ class RoutineRequest extends FormRequest
     public function rules(): array
     {
         return [
-            'department' => 'required|string|max:255',
             'section' => 'required|string|max:255',
         ];
     }

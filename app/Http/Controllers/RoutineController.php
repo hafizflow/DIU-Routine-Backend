@@ -14,36 +14,53 @@ class RoutineController extends Controller
 {
     public function getRoutine(RoutineRequest $request): JsonResponse
     {
-        $department = $request->input('department');
         $section = $request->input('section');
+        $sections = [$section, $section . '1', $section . '2'];
 
-        // Generate section variations (base, base1, base2)
-        $sections = [
-            $section,
-            $section . '1',
-            $section . '2'
+        // Define the desired day order
+        $dayOrder = [
+            'SATURDAY', 'SUNDAY', 'MONDAY',
+            'TUESDAY', 'WEDNESDAY', 'THURSDAY'
         ];
 
-        $routine = Routine::where('department', $department)
-            ->whereIn('section', $sections)
-            ->get(['day', 'start_time', 'end_time', 'course_code', 'room', 'teacher_initials'])
+        $timeOrder = [
+            '08:30:00',
+            '10:00:00',
+            '11:30:00',
+            '01:00:00',
+            '02:30:00',
+            '04:00:00',
+            '05:30:00'
+        ];
+
+        $routine = Routine::whereIn('section', $sections)
+            ->orderBy('start_time')
+            ->get(['day', 'start_time', 'end_time', 'course', 'room', 'teacher'])
             ->groupBy('day')
-            ->map(function ($daySchedule) {
-                return $daySchedule->map(function ($class) {
-                    return [
+            ->map(function ($daySchedule) use ($timeOrder) {
+                return $daySchedule
+                    ->sortBy(function ($class) use ($timeOrder) {
+                        $index = array_search($class->start_time, $timeOrder);
+                        // Return the index if found, otherwise a high number to put it at the end
+                        return $index !== false ? $index : 999;
+                    })
+                    ->values()
+                    ->map(fn($class) => [
                         'start_time' => $class->start_time,
                         'end_time' => $class->end_time,
-                        'course_code' => $class->course_code,
+                        'course' => $class->course,
                         'room' => $class->room,
-                        'teacher_initials' => $class->teacher_initials,
-                    ];
-                });
+                        'teacher' => $class->teacher,
+                    ]);
+            })
+            ->sortBy(function ($_, $day) use ($dayOrder) {
+                return array_search(strtoupper($day), $dayOrder);
             });
 
         if ($routine->isEmpty()) {
             return response()->json([
                 'status' => 'error',
-                'message' => 'No schedule found for the given department and section.',
+                'message' => 'No schedule found for the given section.',
             ], 404);
         }
 
@@ -52,6 +69,7 @@ class RoutineController extends Controller
             'data' => $routine,
         ]);
     }
+
 
     public function importRoutine(RoutineImportRequest $request): JsonResponse
     {
@@ -76,12 +94,9 @@ class RoutineController extends Controller
                 ], 500);
             }
 
-//            $parserService = new PdfParserService();
-//            $schedule = $parserService->parseRoutine($fullPath);
-
+            // Parse the PDF and extract the routine
             $action = new ParsePdfTableAction();
-            $schedule = $action->execute(storage_path('app/routine-1-2.pdf'));
-
+            $schedule = $action->execute($fullPath);
 
             // Clear existing records (optional)
             Routine::truncate();

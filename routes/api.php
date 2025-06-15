@@ -9,6 +9,5 @@ Route::post('/routine/importRoutine', [RoutineController::class, 'importRoutine'
 
 Route::get('/test', function () {
     $action = new ParsePdfTableAction();
-    $table = $action->execute(storage_path('app/routine-1-2.pdf'));
-    dd($table);
+    $action->execute(storage_path('app/routine.pdf'));
 });
