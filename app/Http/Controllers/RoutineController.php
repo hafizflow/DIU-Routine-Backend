@@ -30,7 +30,7 @@ class RoutineController extends Controller
             'data' => $sections,
         ]);
     }
-    
+
     public function getAllTeachers(): JsonResponse
     {
         $teachers = Routine::whereNotNull('teacher')
@@ -44,6 +44,7 @@ class RoutineController extends Controller
             'data' => $teachers,
         ]);
     }
+
 
     public function getRoutine(RoutineRequest $request): JsonResponse
     {
@@ -68,7 +69,7 @@ class RoutineController extends Controller
 
         $routine = Routine::whereIn('section', $sections)
             ->orderBy('start_time')
-            ->get(['day', 'start_time', 'end_time', 'course', 'room', 'teacher'])
+            ->get(['day', 'start_time', 'end_time', 'course', 'room', 'teacher', 'section']) // Include section
             ->groupBy('day')
             ->map(function ($daySchedule) use ($timeOrder) {
                 return $daySchedule
@@ -84,6 +85,7 @@ class RoutineController extends Controller
                         'course' => $class->course,
                         'room' => $class->room,
                         'teacher' => $class->teacher,
+                        'section' => $class->section,
                     ]);
             })
             ->sortBy(function ($_, $day) use ($dayOrder) {
@@ -102,7 +104,6 @@ class RoutineController extends Controller
             'data' => $routine,
         ]);
     }
-
 
     public function importRoutine(RoutineImportRequest $request): JsonResponse
     {

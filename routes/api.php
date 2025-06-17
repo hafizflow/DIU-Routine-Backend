@@ -7,7 +7,7 @@ use App\Http\Controllers\RoutineController;
 
 
 Route::get('/sections', [RoutineController::class, 'getAllSections']);
-//Route::get('/teachers', [RoutineController::class, 'getAllTeachers']);
+Route::get('/teachers', [RoutineController::class, 'getAllTeachers']);
 Route::get('/routine', [RoutineController::class, 'getRoutine']);
 //Route::post('/routine/importRoutine', [RoutineController::class, 'importRoutine']);
 
