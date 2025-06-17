@@ -6,7 +6,7 @@ use JetBrains\PhpStorm\NoReturn;
 
 class ParsePdfTableAction
 {
-    public function execute($path)
+    public function execute($path): array
     {
         $jarFilePath = base_path('tabula/tabula.jar');
         $csvData = shell_exec("java -jar {$jarFilePath} -p all -f CSV $path");

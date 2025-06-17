@@ -1,13 +1,17 @@
 <?php
 
 use App\Actions\ParsePdfTableAction;
+use App\Models\Routine;
 use Illuminate\Support\Facades\Route;
 use App\Http\Controllers\RoutineController;
 
-Route::get('/routine', [RoutineController::class, 'getRoutine']);
-Route::post('/routine/importRoutine', [RoutineController::class, 'importRoutine']);
 
-Route::get('/test', function () {
-    $action = new ParsePdfTableAction();
-    $action->execute(storage_path('app/routine.pdf'));
+Route::get('/sections', [RoutineController::class, 'getAllSections']);
+//Route::get('/teachers', [RoutineController::class, 'getAllTeachers']);
+Route::get('/routine', [RoutineController::class, 'getRoutine']);
+//Route::post('/routine/importRoutine', [RoutineController::class, 'importRoutine']);
+
+
+Route::get('/routine-view', function () {
+    return view('routine');
 });

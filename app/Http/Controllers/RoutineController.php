@@ -6,12 +6,45 @@ use App\Actions\ParsePdfTableAction;
 use App\Http\Requests\RoutineRequest;
 use App\Http\Requests\RoutineImportRequest;
 use App\Models\Routine;
-use App\Services\PdfParserService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Support\Facades\Storage;
 
 class RoutineController extends Controller
 {
+
+    public function getAllSections(): JsonResponse
+    {
+        $sections = Routine::distinct()
+            ->pluck('section')
+            ->filter() // removes nulls
+            ->map(function ($section) {
+                // Remove trailing digits (e.g., A1 → A, N2 → N)
+                return preg_replace('/[0-9]+$/', '', $section);
+            })
+            ->unique()
+            ->sort()
+            ->values();
+
+        return response()->json([
+            'status' => 'success',
+            'data' => $sections,
+        ]);
+    }
+    
+    public function getAllTeachers(): JsonResponse
+    {
+        $teachers = Routine::whereNotNull('teacher')
+            ->distinct()
+            ->pluck('teacher')
+            ->sort()
+            ->values();
+
+        return response()->json([
+            'status' => 'success',
+            'data' => $teachers,
+        ]);
+    }
+
     public function getRoutine(RoutineRequest $request): JsonResponse
     {
         $section = $request->input('section');
