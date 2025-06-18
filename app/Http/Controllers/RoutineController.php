@@ -8,9 +8,62 @@ use App\Http\Requests\RoutineImportRequest;
 use App\Models\Routine;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Support\Facades\Storage;
+use Illuminate\Http\Request;
 
 class RoutineController extends Controller
 {
+    public function getEmptyRooms(Request $request): JsonResponse
+    {
+        $startTime = $request->input('start_time');
+
+        // Define time slots
+        $timeSlots = [
+            '08:30:00' => '10:00:00',
+            '10:00:00' => '11:30:00',
+            '11:30:00' => '01:00:00',
+            '01:00:00' => '02:30:00',
+            '02:30:00' => '04:00:00',
+            '04:00:00' => '05:30:00',
+        ];
+
+        // Validate start_time
+        if (!array_key_exists($startTime, $timeSlots)) {
+            return response()->json([
+                'status' => 'error',
+                'message' => 'Invalid or missing start_time.',
+            ], 400);
+        }
+
+        $endTime = $timeSlots[$startTime];
+
+        // Fetch all distinct days in the Routine table
+        $days = Routine::distinct()->pluck('day')->filter()->unique();
+
+        $result = [];
+
+        foreach ($days as $day) {
+            $emptyRooms = Routine::whereNull('course')
+                ->whereNull('teacher')
+                ->whereNull('section')
+                ->where('start_time', $startTime)
+                ->where('end_time', $endTime)
+                ->where('day', $day)
+                ->pluck('room')
+                ->filter()
+                ->unique()
+                ->sort()
+                ->values();
+
+            $result[$day] = $emptyRooms;
+        }
+
+        return response()->json([
+            'status' => 'success',
+            'start_time' => $startTime,
+            'end_time' => $endTime,
+            'data' => $result,
+        ]);
+    }
 
     public function getAllSections(): JsonResponse
     {
@@ -44,8 +97,7 @@ class RoutineController extends Controller
             'data' => $teachers,
         ]);
     }
-
-
+    
     public function getRoutine(RoutineRequest $request): JsonResponse
     {
         $section = $request->input('section');
