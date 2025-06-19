@@ -16,4 +16,9 @@ class Routine extends Model
     {
         return $this->belongsTo(Course::class, 'course_code', 'course_code');
     }
+
+    public function teacherInfo(): BelongsTo
+    {
+        return $this->belongsTo(Teacher::class, 'teacher', 'teacher');
+    }
 }

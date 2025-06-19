@@ -14,7 +14,7 @@ class RoutineController extends Controller
 {
     public function getAllRoutine(): JsonResponse
     {
-        $routines = Routine::with('course')->get()->map(function ($routine) {
+        $routines = Routine::with(['course', 'teacherInfo'])->get()->map(function ($routine) {
             return [
                 'id' => $routine->id,
                 'day' => $routine->day,
@@ -23,7 +23,14 @@ class RoutineController extends Controller
                 'course_code' => $routine->course_code,
                 'room' => $routine->room,
                 'teacher' => $routine->teacher,
-                'course_title' => optional($routine->course)->course_title, // Safe access
+                'course_title' => optional($routine->course)->course_title,
+                'teacher_info' => $routine->teacherInfo
+                    ? [
+                        'name' => $routine->teacherInfo->name,
+                        'designation' => $routine->teacherInfo->designation,
+                        'cell_phone' => $routine->teacherInfo->cell_phone,
+                        'email' => $routine->teacherInfo->email,
+                    ] : null,
             ];
         });
 

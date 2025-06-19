@@ -2,6 +2,7 @@
 
 use App\Actions\ParsePdfTableAction;
 use App\Http\Controllers\CourseController;
+use App\Http\Controllers\TeacherInfoController;
 use App\Models\Routine;
 use Illuminate\Support\Facades\Route;
 use App\Http\Controllers\RoutineController;
@@ -26,3 +27,4 @@ Route::get('/routine-view', function () {
 
 // ----------- Web Scraper Routes ----------- //
 //Route::get('/courses', [CourseController::class, 'scrape']);
+Route::get('/teachers/scrape', [TeacherInfoController::class, 'scrape']);
