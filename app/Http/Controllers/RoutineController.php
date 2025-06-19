@@ -12,6 +12,27 @@ use Illuminate\Http\Request;
 
 class RoutineController extends Controller
 {
+    public function getAllRoutine(): JsonResponse
+    {
+        $routines = Routine::with('course')->get()->map(function ($routine) {
+            return [
+                'id' => $routine->id,
+                'day' => $routine->day,
+                'start_time' => $routine->start_time,
+                'end_time' => $routine->end_time,
+                'course_code' => $routine->course_code,
+                'room' => $routine->room,
+                'teacher' => $routine->teacher,
+                'course_title' => optional($routine->course)->course_title, // Safe access
+            ];
+        });
+
+        return response()->json([
+            'status' => 'success',
+            'data' => $routines,
+        ]);
+    }
+
     public function getEmptyRooms(Request $request): JsonResponse
     {
         $startTime = $request->input('start_time');
@@ -97,44 +118,39 @@ class RoutineController extends Controller
             'data' => $teachers,
         ]);
     }
-    
+
     public function getRoutine(RoutineRequest $request): JsonResponse
     {
         $section = $request->input('section');
         $sections = [$section, $section . '1', $section . '2'];
 
-        // Define the desired day order
         $dayOrder = [
             'SATURDAY', 'SUNDAY', 'MONDAY',
             'TUESDAY', 'WEDNESDAY', 'THURSDAY'
         ];
 
         $timeOrder = [
-            '08:30:00',
-            '10:00:00',
-            '11:30:00',
-            '01:00:00',
-            '02:30:00',
-            '04:00:00',
-            '05:30:00'
+            '08:30:00', '10:00:00', '11:30:00',
+            '01:00:00', '02:30:00', '04:00:00', '05:30:00'
         ];
 
-        $routine = Routine::whereIn('section', $sections)
+        $routine = Routine::with('course')
+            ->whereIn('section', $sections)
             ->orderBy('start_time')
-            ->get(['day', 'start_time', 'end_time', 'course', 'room', 'teacher', 'section']) // Include section
+            ->get(['day', 'start_time', 'end_time', 'course_code', 'room', 'teacher', 'section'])
             ->groupBy('day')
             ->map(function ($daySchedule) use ($timeOrder) {
                 return $daySchedule
                     ->sortBy(function ($class) use ($timeOrder) {
                         $index = array_search($class->start_time, $timeOrder);
-                        // Return the index if found, otherwise a high number to put it at the end
                         return $index !== false ? $index : 999;
                     })
                     ->values()
                     ->map(fn($class) => [
                         'start_time' => $class->start_time,
                         'end_time' => $class->end_time,
-                        'course' => $class->course,
+                        'course_code' => $class->course_code,
+                        'course_title' => optional($class->course)->course_title,
                         'room' => $class->room,
                         'teacher' => $class->teacher,
                         'section' => $class->section,
@@ -156,6 +172,7 @@ class RoutineController extends Controller
             'data' => $routine,
         ]);
     }
+
 
     public function importRoutine(RoutineImportRequest $request): JsonResponse
     {

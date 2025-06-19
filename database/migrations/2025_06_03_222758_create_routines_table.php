@@ -12,7 +12,7 @@ return new class extends Migration {
             $table->string('section')->nullable();
             $table->time('start_time')->nullable();
             $table->time('end_time')->nullable();
-            $table->string('course')->nullable();
+            $table->string('course_code')->nullable();
             $table->string('room')->nullable();
             $table->string('teacher')->nullable();
             $table->string('day')->nullable();

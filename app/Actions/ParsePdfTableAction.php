@@ -69,7 +69,7 @@ class ParsePdfTableAction
                 ->map(function ($item, $index) use ($currentDay, $timeSlot) {
                     return [
                         'room' => $item[0] ?? null,
-                        'course' => ($value = strstr($item[1], '(', true)) !== false ? $value : null,
+                        'course_code' => ($value = strstr($item[1], '(', true)) !== false ? $value : null,
                         'section' => ($value = strstr($item[1], '(')) !== false ? trim($value, '()') : null,
                         'teacher' => ($value = $item[2]) !== "" ? $value : null,
                         'day' => $currentDay,
