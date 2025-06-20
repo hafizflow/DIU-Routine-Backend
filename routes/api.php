@@ -11,7 +11,7 @@ use App\Http\Controllers\RoutineController;
 // ----------- Routine Main 3 Table Routes ----------- //
 Route::get('/courses', [RoutineController::class, 'getCourses']);
 Route::get('/teacher', [RoutineController::class, 'getTeacher']);
-Route::get('/routines', [RoutineController::class, 'getAllRoutine']);
+Route::get('/routines', [RoutineController::class, 'getAllRoutines']);
 
 
 Route::get('/sections', [RoutineController::class, 'getAllSections']);
