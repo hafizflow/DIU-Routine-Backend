@@ -207,7 +207,7 @@ class RoutineController extends Controller
             return date('H:i:s', strtotime($time));
         };
 
-        $routine = Routine::with('course')
+        $routine = Routine::with(['course', 'teacherInfo'])
             ->whereIn('section', $sections)
             ->orderBy('start_time') // Initial DB sort for efficiency
             ->get(['day', 'start_time', 'end_time', 'course_code', 'room', 'teacher', 'section'])
@@ -226,8 +226,15 @@ class RoutineController extends Controller
                         'course_code' => $class->course_code,
                         'course_title' => optional($class->course)->course_title,
                         'room' => $class->room,
-                        'teacher' => $class->teacher,
                         'section' => $class->section,
+                        'teacher' => $class->teacher,
+                        'teacher_info' => $class->teacherInfo
+                            ? [
+                                'name' => $class->teacherInfo->name,
+                                'designation' => $class->teacherInfo->designation,
+                                'cell_phone' => $class->teacherInfo->cell_phone,
+                                'email' => $class->teacherInfo->email,
+                            ] : null,
                     ]);
             })
             ->sortBy(function ($_, $day) use ($dayOrder) {
