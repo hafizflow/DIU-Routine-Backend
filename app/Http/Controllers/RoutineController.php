@@ -5,13 +5,74 @@ namespace App\Http\Controllers;
 use App\Actions\ParsePdfTableAction;
 use App\Http\Requests\RoutineRequest;
 use App\Http\Requests\RoutineImportRequest;
+use App\Models\Course;
 use App\Models\Routine;
+use App\Models\Teacher;
+use Illuminate\Database\Eloquent\Collection;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Http\Request;
 
 class RoutineController extends Controller
 {
+    public function getRoutineTable(): JsonResponse
+    {
+        $routine = Routine::all()->makeHidden(['created_at', 'updated_at']);
+
+        if ($routine->isEmpty()) {
+            return response()->json([
+                'status' => 'empty',
+                'message' => 'No routine data found.',
+                'data' => [],
+            ]);
+        }
+
+        return response()->json([
+            'status' => 'success',
+            'last_updated' => $routine->first()->getOriginal('updated_at'),
+            'data' => $routine,
+        ]);
+    }
+
+    public function getCourses(): JsonResponse
+    {
+        $courses = Course::all()->makeHidden(['created_at', 'updated_at']);
+
+        if ($courses->isEmpty()) {
+            return response()->json([
+                'status' => 'empty',
+                'message' => 'No routine data found.',
+                'data' => [],
+            ]);
+        }
+
+        return response()->json([
+            'status' => 'success',
+            'last_updated' => $courses->first()->getOriginal('updated_at'),
+            'data' => $courses,
+        ]);
+    }
+
+    public function getTeacher(): JsonResponse
+    {
+        $teachers = Teacher::all()->makeHidden(['created_at', 'updated_at']);
+
+        if ($teachers->isEmpty()) {
+            return response()->json([
+                'status' => 'empty',
+                'message' => 'No teachers found.',
+                'data' => [],
+            ]);
+        }
+
+        return response()->json([
+            'status' => 'success',
+            'last_updated' => $teachers->first()->getOriginal('updated_at'),
+            'data' => $teachers,
+        ]);
+    }
+
+
     public function getAllRoutines(): JsonResponse
     {
         $routines = Routine::with(['course', 'teacherInfo'])->get()->map(function ($routine) {
