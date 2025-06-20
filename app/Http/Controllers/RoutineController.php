@@ -12,7 +12,7 @@ use Illuminate\Http\Request;
 
 class RoutineController extends Controller
 {
-    public function getAllRoutine(): JsonResponse
+    public function getAllRoutines(): JsonResponse
     {
         $routines = Routine::with(['course', 'teacherInfo'])->get()->map(function ($routine) {
             return [
@@ -138,24 +138,30 @@ class RoutineController extends Controller
 
         $timeOrder = [
             '08:30:00', '10:00:00', '11:30:00',
-            '01:00:00', '02:30:00', '04:00:00', '05:30:00'
+            '13:00:00', '14:30:00', '16:00:00', '17:30:00' // Adjusted to 24-hour format for consistency
         ];
+
+        // Normalize time format for comparison (e.g., convert to HH:MM:SS)
+        $normalizeTime = function ($time) {
+            return date('H:i:s', strtotime($time));
+        };
 
         $routine = Routine::with('course')
             ->whereIn('section', $sections)
-            ->orderBy('start_time')
+            ->orderBy('start_time') // Initial DB sort for efficiency
             ->get(['day', 'start_time', 'end_time', 'course_code', 'room', 'teacher', 'section'])
             ->groupBy('day')
-            ->map(function ($daySchedule) use ($timeOrder) {
+            ->map(function ($daySchedule) use ($timeOrder, $normalizeTime) {
                 return $daySchedule
-                    ->sortBy(function ($class) use ($timeOrder) {
-                        $index = array_search($class->start_time, $timeOrder);
-                        return $index !== false ? $index : 999;
+                    ->sortBy(function ($class) use ($timeOrder, $normalizeTime) {
+                        $normalizedTime = $normalizeTime($class->start_time);
+                        $index = array_search($normalizedTime, $timeOrder);
+                        return $index !== false ? $index : 999; // Unmatched times go to the end
                     })
                     ->values()
                     ->map(fn($class) => [
-                        'start_time' => $class->start_time,
-                        'end_time' => $class->end_time,
+                        'start_time' => $normalizeTime($class->start_time), // Ensure consistent format
+                        'end_time' => $normalizeTime($class->end_time),
                         'course_code' => $class->course_code,
                         'course_title' => optional($class->course)->course_title,
                         'room' => $class->room,
