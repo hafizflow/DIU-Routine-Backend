@@ -209,41 +209,95 @@ class RoutineController extends Controller
             '13:00:00', '14:30:00', '16:00:00', '17:30:00'
         ];
 
-        // Normalize time format for comparison (e.g., convert to HH:MM:SS)
+        // Normalize time format for comparison
         $normalizeTime = function ($time) {
-            return date('H:i:s', strtotime($time));
+            $time = trim($time);
+            if (strlen($time) === 5) {
+                return $time . ':00';
+            }
+            return $time;
+        };
+
+        // Enhanced room normalization
+        $normalizeRoom = function ($room) {
+            $room = trim(preg_replace('/\s+/', ' ', $room)); // Remove extra spaces
+            $room = preg_replace('/[^A-Za-z0-9\-()\s]/', '', $room); // Keep only allowed chars
+            $room = str_replace(['G01', 'G1'], 'G1', $room); // Standardize room numbers
+            return $room;
         };
 
         $routine = Routine::with(['course', 'teacherInfo'])
             ->whereIn('section', $sections)
-            ->orderBy('start_time') // Initial DB sort for efficiency
+            ->orderBy('day')
+            ->orderBy('start_time')
             ->get(['day', 'start_time', 'end_time', 'course_code', 'room', 'teacher', 'section'])
-            ->groupBy('day')
-            ->map(function ($daySchedule) use ($timeOrder, $normalizeTime) {
-                return $daySchedule
-                    ->sortBy(function ($class) use ($timeOrder, $normalizeTime) {
-                        $normalizedTime = $normalizeTime($class->start_time);
-                        $index = array_search($normalizedTime, $timeOrder);
-                        return $index !== false ? $index : 999; // Unmatched times go to the end
-                    })
-                    ->values()
-                    ->map(fn($class) => [
-                        'start_time' => $normalizeTime($class->start_time), // Ensure consistent format
+            ->groupBy(function ($item) {
+                return strtoupper($item->day);
+            })
+            ->map(function ($daySchedule) use ($timeOrder, $normalizeTime, $normalizeRoom) {
+                $mergedClasses = collect();
+                $previousClass = null;
+
+                // Sort by time according to our timeOrder
+                $sortedClasses = $daySchedule->sortBy(function ($class) use ($timeOrder, $normalizeTime) {
+                    $normalizedTime = $normalizeTime($class->start_time);
+                    $index = array_search($normalizedTime, $timeOrder);
+                    return $index !== false ? $index : 999;
+                })->values();
+
+                foreach ($sortedClasses as $class) {
+                    $currentClassData = [
+                        'start_time' => $normalizeTime($class->start_time),
                         'end_time' => $normalizeTime($class->end_time),
                         'course_code' => $class->course_code,
-                        'course_title' => optional($class->course)->course_title,
-                        'room' => $class->room,
                         'section' => $class->section,
+                        'course_title' => optional($class->course)->course_title,
+                        'room' => $normalizeRoom($class->room),
+                        'original_room' => $class->room,
                         'teacher' => $class->teacher,
-                        'teacher_info' => $class->teacherInfo
-                            ? [
-                                'name' => $class->teacherInfo->name,
-                                'designation' => $class->teacherInfo->designation,
-                                'cell_phone' => $class->teacherInfo->cell_phone,
-                                'email' => $class->teacherInfo->email,
-                                'image_url' => $class->teacherInfo->image_url,
-                            ] : null,
-                    ]);
+                        'teacher_info' => $class->teacherInfo ? [
+                            'name' => $class->teacherInfo->name,
+                            'designation' => $class->teacherInfo->designation,
+                            'cell_phone' => $class->teacherInfo->cell_phone,
+                            'email' => $class->teacherInfo->email,
+                            'image_url' => $class->teacherInfo->image_url,
+                        ] : null,
+                    ];
+
+                    // Check if we can merge with previous class
+                    $canMerge = $previousClass &&
+                        $previousClass['course_code'] === $currentClassData['course_code'] &&
+                        $previousClass['section'] === $currentClassData['section'] &&
+                        $previousClass['teacher'] === $currentClassData['teacher'] &&
+                        $previousClass['room'] === $currentClassData['room'] &&
+                        $previousClass['end_time'] === $currentClassData['start_time'];
+
+                    if ($canMerge) {
+                        // Merge with previous class
+                        $previousClass['end_time'] = $currentClassData['end_time'];
+                    } else {
+                        if ($previousClass) {
+                            // Restore original room format
+                            $previousClass['room'] = $previousClass['original_room'];
+                            unset($previousClass['original_room']);
+                            $mergedClasses->push($previousClass);
+                        }
+                        $previousClass = $currentClassData;
+                    }
+                }
+
+                // Add the last class if it exists
+                if ($previousClass) {
+                    $previousClass['room'] = $previousClass['original_room'];
+                    unset($previousClass['original_room']);
+                    $mergedClasses->push($previousClass);
+                }
+
+                // Final sort by time
+                return $mergedClasses->sortBy(function ($class) use ($timeOrder) {
+                    $index = array_search($class['start_time'], $timeOrder);
+                    return $index !== false ? $index : 999;
+                })->values();
             })
             ->sortBy(function ($_, $day) use ($dayOrder) {
                 return array_search(strtoupper($day), $dayOrder);
