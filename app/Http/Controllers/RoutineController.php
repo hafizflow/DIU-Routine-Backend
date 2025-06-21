@@ -72,7 +72,6 @@ class RoutineController extends Controller
         ]);
     }
 
-
     public function getAllRoutines(): JsonResponse
     {
         $routines = Routine::with(['course', 'teacherInfo'])->get()->map(function ($routine) {
@@ -103,53 +102,61 @@ class RoutineController extends Controller
 
     public function getEmptyRooms(Request $request): JsonResponse
     {
-        $startTime = $request->input('start_time');
-
-        // Define time slots
-        $timeSlots = [
-            '08:30:00' => '10:00:00',
-            '10:00:00' => '11:30:00',
-            '11:30:00' => '01:00:00',
-            '01:00:00' => '02:30:00',
-            '02:30:00' => '04:00:00',
-            '04:00:00' => '05:30:00',
+        $dayOrder = [
+            'SATURDAY', 'SUNDAY', 'MONDAY',
+            'TUESDAY', 'WEDNESDAY', 'THURSDAY'
         ];
 
-        // Validate start_time
-        if (!array_key_exists($startTime, $timeSlots)) {
-            return response()->json([
-                'status' => 'error',
-                'message' => 'Invalid or missing start_time.',
-            ], 400);
+        // Validate and get start_time from request
+        $request->validate([
+            'start_time' => 'nullable|date_format:H:i'
+        ]);
+        $startTime = $request->input('start_time');
+
+        $query = Routine::whereNull('teacher')
+            ->whereNull('course_code')
+            ->select(['day', 'start_time', 'end_time', 'room']);
+
+        // Apply time filter if provided
+        if ($startTime) {
+            $query->where('start_time', $startTime);
         }
 
-        $endTime = $timeSlots[$startTime];
+        $emptyRooms = $query->get()
+            ->groupBy(function ($item) {
+                return strtoupper($item->day);
+            })
+            ->sortBy(function ($group, $day) use ($dayOrder) {
+                return array_search($day, $dayOrder);
+            })
+            ->map(function ($dayGroup) {
+                return $dayGroup->map(function ($item) {
+                    return [
+                        'start_time' => $item->start_time,
+                        'end_time' => $item->end_time,
+                        'room' => $item->room
+                    ];
+                })->sortBy('start_time')->values();
+            });
 
-        // Fetch all distinct days in the Routine table
-        $days = Routine::distinct()->pluck('day')->filter()->unique();
+        if ($emptyRooms->isEmpty()) {
+            return response()->json([
+                'status' => 'empty',
+                'message' => $startTime
+                    ? 'No empty rooms found for the specified time.'
+                    : 'No empty rooms found in the schedule.',
+                'data' => array_fill_keys($dayOrder, []), // Return all days with empty arrays
+            ]);
+        }
 
-        $result = [];
-
-        foreach ($days as $day) {
-            $emptyRooms = Routine::whereNull('course')
-                ->whereNull('teacher')
-                ->whereNull('section')
-                ->where('start_time', $startTime)
-                ->where('end_time', $endTime)
-                ->where('day', $day)
-                ->pluck('room')
-                ->filter()
-                ->unique()
-                ->sort()
-                ->values();
-
-            $result[$day] = $emptyRooms;
+        // Ensure all days are present in response
+        $result = array_fill_keys($dayOrder, []);
+        foreach ($emptyRooms as $day => $rooms) {
+            $result[$day] = $rooms;
         }
 
         return response()->json([
             'status' => 'success',
-            'start_time' => $startTime,
-            'end_time' => $endTime,
             'data' => $result,
         ]);
     }
@@ -199,7 +206,7 @@ class RoutineController extends Controller
 
         $timeOrder = [
             '08:30:00', '10:00:00', '11:30:00',
-            '13:00:00', '14:30:00', '16:00:00', '17:30:00' // Adjusted to 24-hour format for consistency
+            '13:00:00', '14:30:00', '16:00:00', '17:30:00'
         ];
 
         // Normalize time format for comparison (e.g., convert to HH:MM:SS)
@@ -234,6 +241,7 @@ class RoutineController extends Controller
                                 'designation' => $class->teacherInfo->designation,
                                 'cell_phone' => $class->teacherInfo->cell_phone,
                                 'email' => $class->teacherInfo->email,
+                                'image_url' => $class->teacherInfo->image_url,
                             ] : null,
                     ]);
             })
@@ -253,7 +261,6 @@ class RoutineController extends Controller
             'data' => $routine,
         ]);
     }
-
 
     public function importRoutine(RoutineImportRequest $request): JsonResponse
     {
@@ -303,5 +310,153 @@ class RoutineController extends Controller
                 'message' => 'Failed to import class routine: ' . $e->getMessage(),
             ], 500);
         }
+    }
+
+    public function getTeacherClasses(Request $request): JsonResponse
+    {
+        $request->validate([
+            'teacher' => 'required|string|max:10'
+        ]);
+
+        $teacherInitial = strtoupper($request->input('teacher'));
+
+        $teacherInfo = Teacher::where('teacher', $teacherInitial)->first();
+
+        // Define the custom time order for sorting
+        $timeOrder = [
+            '08:30:00' => 1,
+            '10:00:00' => 2,
+            '11:30:00' => 3,
+            '01:00:00' => 4,  // Note: This is 1:00 PM
+            '02:30:00' => 5,   // 2:30 PM
+            '04:00:00' => 6,   // 4:00 PM
+            '05:30:00' => 7    // 5:30 PM
+        ];
+
+        $classes = Routine::with(['course', 'teacherInfo'])
+            ->where('teacher', $teacherInitial)
+            ->get()
+            ->sortBy(function ($class) use ($timeOrder) {
+                $dayOrder = [
+                    'SATURDAY' => 1,
+                    'SUNDAY' => 2,
+                    'MONDAY' => 3,
+                    'TUESDAY' => 4,
+                    'WEDNESDAY' => 5,
+                    'THURSDAY' => 6
+                ];
+
+                $day = strtoupper($class->day);
+                $startTime = $class->start_time;
+
+                // Ensure time is in HH:MM:SS format
+                if (strlen($startTime) === 5) {
+                    $startTime .= ':00';
+                }
+
+                $dayValue = $dayOrder[$day] ?? 7; // Default to high number if day not found
+                $timeValue = $timeOrder[$startTime] ?? 8; // Default to higher number if time not found
+
+                return ($dayValue * 100) + $timeValue;
+            })
+            ->values()
+            ->groupBy(function ($class) {
+                return strtoupper($class->day);
+            })
+            ->map(function ($dayClasses) use ($timeOrder) {
+                $mergedClasses = collect();
+                $previousClass = null;
+
+                // First sort the day's classes according to our custom time order
+                $sortedClasses = $dayClasses->sortBy(function ($class) use ($timeOrder) {
+                    $startTime = $class->start_time;
+                    if (strlen($startTime) === 5) {
+                        $startTime .= ':00';
+                    }
+                    return $timeOrder[$startTime] ?? 99;
+                })->values();
+
+                foreach ($sortedClasses as $class) {
+                    // Normalize room string
+                    $normalizedRoom = preg_replace('/[^A-Za-z0-9\-]/', '', $class->room);
+                    $normalizedRoom = str_replace(['G01', 'G1'], 'G1', $normalizedRoom);
+
+                    $currentClassData = [
+                        'course_code' => $class->course_code,
+                        'section' => $class->section,
+                        'course_title' => optional($class->course)->course_title,
+                        'room' => $normalizedRoom,
+                        'original_room' => $class->room,
+                    ];
+
+                    if ($previousClass &&
+                        $previousClass['course_code'] === $currentClassData['course_code'] &&
+                        $previousClass['section'] === $currentClassData['section'] &&
+                        $previousClass['course_title'] === $currentClassData['course_title'] &&
+                        $previousClass['room'] === $currentClassData['room'] &&
+                        $previousClass['end_time'] === $class->start_time
+                    ) {
+                        // Merge with previous class
+                        $previousClass['end_time'] = $class->end_time;
+                    } else {
+                        if ($previousClass) {
+                            $previousClass['room'] = $previousClass['original_room'];
+                            unset($previousClass['original_room']);
+                            $mergedClasses->push($previousClass);
+                        }
+                        $previousClass = [
+                            'start_time' => $class->start_time,
+                            'end_time' => $class->end_time,
+                            ...$currentClassData
+                        ];
+                    }
+                }
+
+                if ($previousClass) {
+                    $previousClass['room'] = $previousClass['original_room'];
+                    unset($previousClass['original_room']);
+                    $mergedClasses->push($previousClass);
+                }
+
+                // Sort the merged classes according to our custom time order
+                return $mergedClasses->sortBy(function ($class) use ($timeOrder) {
+                    $startTime = $class['start_time'];
+                    if (strlen($startTime) === 5) {
+                        $startTime .= ':00';
+                    }
+                    return $timeOrder[$startTime] ?? 99;
+                })->values();
+            });
+
+        // Ensure all days are present in the response
+        $dayOrder = [
+            'SATURDAY', 'SUNDAY', 'MONDAY',
+            'TUESDAY', 'WEDNESDAY', 'THURSDAY'
+        ];
+        $orderedClasses = collect($dayOrder)
+            ->mapWithKeys(function ($day) use ($classes) {
+                return [$day => $classes->get($day, [])];
+            });
+
+        if ($orderedClasses->flatten(1)->isEmpty()) {
+            return response()->json([
+                'status' => 'empty',
+                'message' => 'No classes found for teacher ' . $teacherInitial,
+                'data' => []
+            ]);
+        }
+
+        return response()->json([
+            'status' => 'success',
+            'teacher' => $teacherInitial,
+            'teacher_info' => $teacherInfo ? [
+                'name' => $teacherInfo->name,
+                'designation' => $teacherInfo->designation,
+                'cell_phone' => $teacherInfo->cell_phone,
+                'email' => $teacherInfo->email,
+                'image_url' => $teacherInfo->image_url,
+            ] : null,
+            'data' => $orderedClasses
+        ]);
     }
 }
