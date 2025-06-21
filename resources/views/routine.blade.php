@@ -2,1007 +2,410 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <title>Routine Viewer</title>
-    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Class Routine - Student Portal</title>
+    <script defer src="https://cdn.jsdelivr.net/npm/alpinejs@3.x.x/dist/cdn.min.js"></script>
     <script src="https://cdn.tailwindcss.com"></script>
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/animate.css/4.1.1/animate.min.css"/>
     <style>
-        .glass-card {
-            background: rgba(255, 255, 255, 0.85);
-            backdrop-filter: blur(10px);
-            border: 1px solid rgba(255, 255, 255, 0.2);
+        [x-cloak] {
+            display: none !important;
         }
 
-        .gradient-bg {
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        .time-highlight {
+            background: rgba(102, 126, 234, 0.2);
+            border-left: 4px solid #667eea;
         }
 
-        .suggestions-container {
-            position: absolute;
-            width: 100%;
-            max-height: 200px;
-            overflow-y: auto;
-            background: white;
-            border: 1px solid #e5e7eb;
-            border-top: none;
-            border-radius: 0 0 0.75rem 0.75rem;
-            box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.1);
-            z-index: 50;
-            top: 100%;
-            left: 0;
-        }
-
-        .suggestion-item {
-            padding: 0.75rem 1rem;
-            cursor: pointer;
-            transition: all 0.2s;
-            border-bottom: 1px solid #f3f4f6;
-            font-size: 0.875rem;
-        }
-
-        .suggestion-item:last-child {
-            border-bottom: none;
-        }
-
-        .suggestion-item:hover {
-            background-color: #f8fafc;
-            padding-left: 1.25rem;
-        }
-
-        .input-container {
-            position: relative;
-            z-index: 40;
-        }
-
-        .day-row {
-            background: linear-gradient(90deg, #3b82f6, #1d4ed8);
-            color: white;
-        }
-
-        .class-row:hover {
-            background-color: #f8fafc;
-            transform: translateX(4px);
-            transition: all 0.2s;
-        }
-
-        /* Mobile Timeline Styles */
-        .mobile-timeline {
-            background: #1a1a1a;
-            min-height: 100vh;
-            color: white;
-        }
-
-        .mobile-class-item {
-            background: #2a2a2a;
-            border-radius: 12px;
-            margin-bottom: 1rem;
-            padding: 1rem;
-            border-left: 4px solid #3b82f6;
-            position: relative;
-        }
-
-        .mobile-break-item {
-            background: rgba(64, 64, 64, 0.5);
-            border-radius: 12px;
-            margin-bottom: 1rem;
-            padding: 0.75rem 1rem;
-            border-left: 4px solid #6b7280;
-            position: relative;
-        }
-
-        .mobile-break-item::before {
-            content: '';
-            position: absolute;
-            left: 0;
-            top: 0;
-            right: 0;
-            bottom: 0;
-            background: repeating-linear-gradient(
-                45deg,
-                transparent,
-                transparent 8px,
-                rgba(107, 114, 128, 0.1) 8px,
-                rgba(107, 114, 128, 0.1) 16px
-            );
-            border-radius: 12px;
-            pointer-events: none;
-        }
-
-        .time-label {
-            font-size: 1.25rem;
-            font-weight: 600;
-            color: #94a3b8;
-            margin-bottom: 0.5rem;
-        }
-
-        .course-title {
-            font-size: 1.1rem;
-            font-weight: 600;
-            color: white;
-            margin-bottom: 0.75rem;
-        }
-
-        .course-details {
-            display: grid;
-            grid-template-columns: auto 1fr;
-            gap: 0.5rem;
-            font-size: 0.9rem;
-        }
-
-        .detail-label {
-            color: #94a3b8;
-            min-width: 60px;
-        }
-
-        .detail-value {
-            color: white;
-            font-weight: 500;
-        }
-
-        .course-code {
-            color: #60a5fa;
-            font-weight: 600;
-        }
-
-        .section-code {
-            color: #34d399;
-            font-weight: 600;
-        }
-
-        .teacher-name {
-            color: #a78bfa;
-            font-weight: 600;
-        }
-
-        .room-name {
-            color: #fbbf24;
-            font-weight: 600;
-        }
-
-        .break-text {
-            color: #9ca3af;
-            font-size: 0.9rem;
-            display: flex;
-            align-items: center;
-            gap: 0.5rem;
-        }
-
-        .mobile-header {
-            background: #1a1a1a;
-            padding: 1rem;
-            border-bottom: 1px solid #374151;
-            position: sticky;
-            top: 0;
-            z-index: 30;
-        }
-
-        .mobile-day-header {
-            background: linear-gradient(90deg, #3b82f6, #1d4ed8);
-            color: white;
-            padding: 1rem;
-            border-radius: 12px;
-            margin-bottom: 1rem;
-            text-align: center;
-            font-weight: 600;
-            font-size: 1.1rem;
-        }
-
-        .floating-btn {
-            position: fixed;
-            bottom: 2rem;
-            right: 2rem;
-            width: 3.5rem;
-            height: 3.5rem;
-            background: linear-gradient(45deg, #3b82f6, #1d4ed8);
-            color: white;
-            border-radius: 50%;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            box-shadow: 0 4px 12px rgba(59, 130, 246, 0.4);
-            cursor: pointer;
-            transition: all 0.3s;
-            z-index: 100;
-        }
-
-        .floating-btn:hover {
-            transform: scale(1.1);
-            box-shadow: 0 6px 20px rgba(59, 130, 246, 0.6);
-        }
-
-        /* Sidebar Styles */
-        .sidebar {
-            width: 250px;
-            min-height: 100vh;
-            background: linear-gradient(180deg, #3b82f6, #1d4ed8);
-            position: fixed;
-            top: 0;
-            left: 0;
-            transition: all 0.3s ease-in-out;
-            z-index: 1000;
-            box-shadow: 2px 0 10px rgba(0, 0, 0, 0.1);
-        }
-
-        .sidebar.collapsed {
-            width: 70px;
-        }
-
-        .sidebar-header {
-            padding: 1.5rem;
-            border-bottom: 1px solid rgba(255, 255, 255, 0.1);
-            text-align: center;
-            transition: all 0.3s ease-in-out;
-        }
-
-        .sidebar.collapsed .sidebar-header {
-            padding: 1rem 0.5rem;
-        }
-
-        .sidebar-header h2 {
-            color: white;
-            font-size: 1.25rem;
-            font-weight: 600;
-            transition: all 0.3s ease-in-out;
-            opacity: 1;
-        }
-
-        .sidebar.collapsed .sidebar-header h2 {
-            opacity: 0;
-            height: 0;
+        .day-container {
+            background: rgba(39, 39, 42, 0.7);
+            border-radius: 0.5rem;
+            border: 1px solid rgba(55, 65, 81, 0.5);
+            margin-bottom: 1.5rem;
             overflow: hidden;
-            margin: 0;
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
         }
 
-        .sidebar-menu {
-            padding: 1rem 0;
-        }
-
-        .sidebar-menu a {
-            display: flex;
-            align-items: center;
-            padding: 0.75rem 1.5rem;
-            color: white;
-            text-decoration: none;
-            transition: all 0.3s ease-in-out;
-            white-space: nowrap;
-        }
-
-        .sidebar-menu a:hover {
-            background-color: rgba(255, 255, 255, 0.1);
-        }
-
-        .sidebar-menu a i {
-            margin-right: 0.75rem;
-            width: 20px;
-            text-align: center;
-            flex-shrink: 0;
-            transition: all 0.3s ease-in-out;
-        }
-
-        .sidebar-menu a span {
-            transition: all 0.3s ease-in-out;
-            opacity: 1;
-        }
-
-        .sidebar.collapsed .sidebar-menu a {
+        .day-header {
+            background: rgba(55, 65, 81, 0.7);
             padding: 0.75rem 1rem;
-            justify-content: center;
-        }
-
-        .sidebar.collapsed .sidebar-menu a span {
-            opacity: 0;
-            width: 0;
-            overflow: hidden;
-        }
-
-        .sidebar.collapsed .sidebar-menu a i {
-            margin-right: 0;
-            font-size: 1.2rem;
-        }
-
-        .sidebar-toggle {
-            position: fixed;
-            top: 1rem;
-            left: 1rem;
-            z-index: 1100;
-            background: linear-gradient(45deg, #3b82f6, #1d4ed8);
-            color: white;
-            border: none;
-            width: 40px;
-            height: 40px;
-            border-radius: 50%;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            cursor: pointer;
-            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.2);
-            transition: all 0.3s ease-in-out;
-        }
-
-        .sidebar-toggle.hidden {
-            opacity: 0;
-            visibility: hidden;
-            transform: translateX(-10px);
-        }
-
-        .content-wrapper {
-            transition: all 0.3s ease-in-out;
-            margin-left: 250px;
-            min-height: 100vh;
-        }
-
-        .sidebar.collapsed + .content-wrapper {
-            margin-left: 70px;
-        }
-
-        /* Overlay for mobile */
-        .sidebar-overlay {
-            position: fixed;
-            top: 0;
-            left: 0;
-            right: 0;
-            bottom: 0;
-            background-color: rgba(0, 0, 0, 0.5);
-            z-index: 900;
-            opacity: 0;
-            visibility: hidden;
-            transition: all 0.3s ease-in-out;
-        }
-
-        .sidebar-overlay.active {
-            opacity: 1;
-            visibility: visible;
-        }
-
-        @media (max-width: 768px) {
-            .desktop-table {
-                display: none;
-            }
-
-            .mobile-view {
-                display: block;
-            }
-
-            body {
-                background: #1a1a1a;
-            }
-
-            .gradient-bg {
-                background: #1a1a1a;
-            }
-
-            /* Mobile-specific styles for glass card */
-            .glass-card {
-                background: rgba(26, 26, 26, 0.9);
-                border: 1px solid rgba(255, 255, 255, 0.1);
-            }
-
-            /* Mobile-specific styles for search section */
-            .input-container label {
-                color: #94a3b8 !important;
-            }
-
-            .input-container input {
-                background-color: #2a2a2a !important;
-                border-color: #374151 !important;
-                color: white !important;
-            }
-
-            .input-container input::placeholder {
-                color: #6b7280 !important;
-            }
-
-            .input-container button {
-                background-color: #3b82f6 !important;
-            }
-
-            .input-container button:hover {
-                background-color: #2563eb !important;
-            }
-
-            .suggestions-container {
-                background: #1e293b !important;
-                border-color: #374151 !important;
-            }
-
-            .suggestion-item {
-                color: #e5e7eb !important;
-                border-bottom-color: #374151 !important;
-            }
-
-            .suggestion-item:hover {
-                background-color: #334155 !important;
-            }
-
-            /* Header text colors for mobile */
-            .glass-card h1 {
-                color: white !important;
-            }
-
-            .glass-card p {
-                color: #94a3b8 !important;
-            }
-
-            /* Mobile sidebar behavior */
-            .sidebar {
-                left: -250px;
-            }
-
-            .sidebar.active {
-                left: 0;
-            }
-
-            .sidebar.collapsed {
-                width: 250px;
-                left: -250px;
-            }
-
-            .sidebar.collapsed.active {
-                left: 0;
-            }
-
-            .content-wrapper {
-                margin-left: 0 !important;
-            }
-        }
-
-        @media (min-width: 769px) {
-            .desktop-table {
-                display: block;
-            }
-
-            .mobile-view {
-                display: none;
-            }
-
-            .floating-btn {
-                display: none;
-            }
-
-            .sidebar-toggle {
-                display: none;
-            }
-        }
-
-        .animate-fade-in {
-            animation: fadeIn 0.5s ease-in-out;
+            border-bottom: 1px solid rgba(55, 65, 81, 0.5);
         }
 
         @keyframes fadeIn {
             from {
                 opacity: 0;
-                transform: translateY(20px);
             }
             to {
                 opacity: 1;
-                transform: translateY(0);
             }
         }
 
-        .pulse-ring {
-            content: '';
-            position: absolute;
-            border: 2px solid #3b82f6;
-            border-radius: 50%;
-            animation: pulse-ring 2s infinite;
-        }
-
-        @keyframes pulse-ring {
-            0% {
-                transform: scale(0.8);
-                opacity: 1;
-            }
-            80%, 100% {
-                transform: scale(2.5);
+        @keyframes slideUp {
+            from {
+                transform: translateY(10px);
                 opacity: 0;
+            }
+            to {
+                transform: translateY(0);
+                opacity: 1;
             }
         }
     </style>
 </head>
-<body class="gradient-bg min-h-screen">
-<!-- Sidebar Toggle Button -->
-<button class="sidebar-toggle" id="sidebarToggle" onclick="toggleSidebar()">
-    <i class="fas fa-bars"></i>
-</button>
+<body class="bg-gray-900 text-white min-h-screen font-sans">
+<div x-data="routineApp()" class="min-h-screen">
+    <!-- Header -->
+    <div class="gradient-bg px-8 pt-8 pb-4">
+        <div class="container mx-auto text-center">
+            <!-- Main Heading -->
+            <h1 class="text-2xl font-bold text-white mb-6">Class Routine Viewer</h1>
 
-<!-- Sidebar Overlay (for mobile) -->
-<div class="sidebar-overlay" onclick="toggleSidebar()"></div>
+            <!-- Search Section -->
+            <div class="max-w-md mx-auto bg-white/10 backdrop-blur-sm rounded-xl p-6">
+                <!-- Input Label -->
+                <label class="block text-left text-white/90 mb-2 text-sm font-medium">Enter Section</label>
 
-<!-- Sidebar Navigation -->
-<div class="sidebar" id="sidebar">
-    <div class="sidebar-header">
-        <h2 class="text-white text-xl font-bold">Routine Viewer</h2>
-    </div>
-    <div class="sidebar-menu">
-        <a href="#">
-            <i class="fas fa-user-graduate"></i>
-            <span>Student</span>
-        </a>
-        <a href="#">
-            <i class="fas fa-chalkboard-teacher"></i>
-            <span>Teacher</span>
-        </a>
-        <a href="#">
-            <i class="fas fa-door-open"></i>
-            <span>Room</span>
-        </a>
-        <a href="#">
-            <i class="fas fa-calendar-times"></i>
-            <span>Empty</span>
-        </a>
-        <a href="#">
-            <i class="fas fa-clipboard-list"></i>
-            <span>Exam</span>
-        </a>
-    </div>
-</div>
-
-<!-- Main Content Wrapper -->
-<div class="content-wrapper" id="contentWrapper">
-    <div class="min-h-screen py-4 px-4 sm:px-6 lg:px-8">
-        <div class="max-w-7xl mx-auto">
-            <!-- Header Card -->
-            <div class="glass-card rounded-2xl shadow-xl p-6 mb-6 animate-fade-in">
-                <div class="text-center mb-6">
-                    <div class="relative inline-block mb-4">
-                        <i class="fas fa-calendar-alt text-4xl text-blue-600"></i>
-                        <div class="pulse-ring"></div>
+                <div class="flex gap-2">
+                    <div class="flex-1 relative">
+                        <input
+                            type="text"
+                            x-model="searchSection"
+                            @keyup.enter="searchRoutine()"
+                            placeholder="e.g., 61_A, 61_B, 61_N"
+                            class="w-full px-4 py-3 bg-white/20 border border-white/30 rounded-lg text-white placeholder-white/70 focus:outline-none focus:ring-2 focus:ring-white/50 text-base"
+                        >
                     </div>
-                    <h1 class="text-2xl sm:text-3xl lg:text-4xl font-bold text-gray-800 mb-2">
-                        Class Routine Viewer
-                    </h1>
-                    <p class="text-gray-600 text-sm sm:text-base">
-                        View your class schedule by entering your section
-                    </p>
+                    <button
+                        @click="searchRoutine()"
+                        :disabled="!searchSection.trim() || loading"
+                        class="px-5 py-3 bg-white/30 hover:bg-white/40 disabled:bg-white/20 rounded-lg transition-colors flex items-center justify-center"
+                    >
+                        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                  d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"/>
+                        </svg>
+                    </button>
                 </div>
+            </div>
+        </div>
+    </div>
 
-                <!-- Search Section -->
-                <div class="max-w-lg mx-auto">
-                    <div class="relative">
-                        <label for="section" class="block text-sm font-medium text-gray-700 mb-2">
-                            Enter Section
-                        </label>
-                        <div class="input-container">
-                            <div class="relative">
-                                <input type="text"
-                                       id="section"
-                                       name="section"
-                                       class="w-full border-2 border-gray-300 rounded-xl px-4 py-3 pr-12 shadow-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all duration-200 text-sm sm:text-base"
-                                       placeholder="e.g., 61_A, 61_B, 61_N"
-                                       autocomplete="off"
-                                       oninput="showSuggestions()"/>
-                                <button onclick="getRoutine()"
-                                        class="absolute right-2 top-1/2 transform -translate-y-1/2 bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 transition-all duration-200 text-sm">
-                                    <i class="fas fa-search"></i>
-                                    <span class="hidden sm:inline ml-2">Search</span>
-                                </button>
+    <!-- Main Content -->
+    <div class="container mx-auto pb-20 max-w-md">
+        <!-- Welcome Message -->
+        <div x-show="!currentSection && !loading && !error" x-cloak class="text-center py-16">
+            <div class="max-w-md mx-auto">
+                <div class="mb-5">
+                    <svg class="w-16 h-16 mx-auto text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                              d="M8 7V3a1 1 0 011-1h6a1 1 0 011 1v4m-9 4v10a2 2 0 002 2h8a2 2 0 002-2V11a2 2 0 00-2-2H7a2 2 0 00-2 2z"/>
+                    </svg>
+                </div>
+                <h3 class="text-xl font-semibold text-gray-300 mb-3">Search for Class Routine</h3>
+                <p class="text-gray-500 mb-4">Enter your section to view the class schedule</p>
+            </div>
+        </div>
+
+        <!-- Loading State -->
+        <div x-show="loading" x-cloak class="text-center py-12">
+            <div class="inline-block animate-spin rounded-full h-8 w-8 border-b-2 border-purple-500"></div>
+            <p class="mt-3 text-gray-400">Loading routine...</p>
+        </div>
+
+        <!-- Error State -->
+        <div x-show="error" x-cloak
+             class="bg-red-900/50 border border-red-500/50 text-red-300 px-5 py-3 rounded-lg mb-6">
+            <div class="flex items-start">
+                <svg class="w-5 h-5 mr-2 mt-0.5 text-red-400" fill="currentColor" viewBox="0 0 20 20">
+                    <path fill-rule="evenodd"
+                          d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7 4a1 1 0 11-2 0 1 1 0 012 0zm-1-9a1 1 0 00-1 1v4a1 1 0 102 0V6a1 1 0 00-1-1z"
+                          clip-rule="evenodd"/>
+                </svg>
+                <div>
+                    <p class="font-medium">Error Loading Routine</p>
+                    <p x-text="error" class="text-sm mt-1"></p>
+                </div>
+            </div>
+        </div>
+
+        <!-- Routine Display -->
+        <div x-show="routineData && !loading && !error" x-cloak>
+            <template x-for="(dayClasses, dayName) in routineData" :key="dayName">
+                <div x-show="dayClasses.length > 0" class="day-container">
+                    <!-- Day Header -->
+                    <div class="day-header">
+                        <div class="flex items-center">
+                            <h2 class="text-xl font-bold text-teal-500" x-text="formatDayName(dayName)"></h2>
+                            <div class="flex-1 h-px bg-gray-600 mx-3"></div>
+                            <div class="text-xs text-gray-300 bg-gray-700 px-2 py-1 rounded-full">
+                                <span x-text="dayClasses.length + ' classes'"></span>
                             </div>
-                            <div id="suggestions" class="suggestions-container hidden"></div>
                         </div>
                     </div>
+
+                    <!-- Classes for the day -->
+                    <template x-for="(classItem, index) in dayClasses"
+                              :key="classItem.course_code + classItem.start_time + dayName">
+                        <div class="border-b border-gray-700 last:border-b-0">
+                            <!-- Time Highlight -->
+                            <div class="time-highlight px-4 py-2 flex items-center justify-between">
+                                <div class="font-bold text-purple-300"
+                                     x-text="formatTime(classItem.start_time) + ' - ' + formatTime(classItem.end_time)">
+                                </div>
+                            </div>
+
+                            <!-- Class Details -->
+                            <div class="p-4">
+                                <h3 class="text-lg font-semibold mb-3" x-text="classItem.course_title"></h3>
+                                <div class="grid grid-cols-2 gap-3 text-sm">
+                                    <div class="flex space-x-2">
+                                        <p class="text-gray-400">Course:</p>
+                                        <p class="font-medium" x-text="classItem.course_code"></p>
+                                    </div>
+                                    <div class="flex space-x-2">
+                                        <p class="text-gray-400">Section:</p>
+                                        <p class="font-medium" x-text="classItem.section"></p>
+                                    </div>
+                                    <div class="flex space-x-2">
+                                        <p class="text-gray-400">Teacher:</p>
+                                        <p class="text-blue-400 font-bold cursor-pointer hover:text-blue-700 transition-colors"
+                                           @click="showTeacherDetails(classItem.teacher_info, classItem.teacher)"
+                                           x-text="classItem.teacher"></p>
+                                    </div>
+                                    <div class="flex space-x-2">
+                                        <p class="text-gray-400">Room:</p>
+                                        <p class="text-green-300 font-medium" x-text="classItem.room"></p>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </template>
+                </div>
+            </template>
+
+            <!-- No classes message -->
+            <div x-show="!hasAnyClasses()" class="text-center py-12">
+                <svg class="w-16 h-16 mx-auto mb-4 text-gray-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                          d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/>
+                </svg>
+                <h3 class="text-lg font-semibold text-gray-400 mb-2">No Classes Found</h3>
+                <p class="text-gray-500">No scheduled classes for this section</p>
+            </div>
+        </div>
+    </div>
+
+    <!-- Teacher Details Modal -->
+    <div x-show="showTeacherModal" x-cloak
+         class="fixed inset-0 bg-black/70 flex items-center justify-center z-50 p-4 px-8">
+        <div class="bg-gray-800 w-full max-w-md rounded-lg overflow-hidden"
+             @click.away="showTeacherModal = false"
+             x-transition:enter="transition ease-out duration-300"
+             x-transition:enter-start="opacity-0 scale-95"
+             x-transition:enter-end="opacity-100 scale-100"
+             x-transition:leave="transition ease-in duration-200"
+             x-transition:leave-start="opacity-100 scale-100"
+             x-transition:leave-end="opacity-0 scale-95">
+
+            <div class="p-6">
+                <div class="flex items-center justify-between mb-4">
+                    <div class="flex items-center space-x-4">
+                        <!-- Teacher Image in rounded container -->
+                        <div
+                            class="relative h-14 w-14 rounded-full bg-gradient-to-r from-purple-600 to-blue-500 overflow-hidden flex-shrink-0">
+                            <!-- Default avatar if no image available -->
+                            <template x-if="!selectedTeacher.info?.image_url">
+                                <div class="absolute inset-0 flex items-center justify-center">
+                                    <svg class="w-8 h-8 text-white opacity-80" fill="currentColor" viewBox="0 0 20 20">
+                                        <path fill-rule="evenodd"
+                                              d="M10 9a3 3 0 100-6 3 3 0 000 6zm-7 9a7 7 0 1114 0H3z"
+                                              clip-rule="evenodd"/>
+                                    </svg>
+                                </div>
+                            </template>
+
+                            <!-- Teacher image if available -->
+                            <img x-show="selectedTeacher.info?.image_url"
+                                 :src="selectedTeacher.info?.image_url"
+                                 :alt="selectedTeacher.name || selectedTeacher.shortName"
+                                 class="w-full h-full object-cover">
+                        </div>
+
+                        <div>
+                            <h3 class="text-xl font-bold"
+                                x-text="selectedTeacher.name || selectedTeacher.shortName"></h3>
+                            <p x-show="selectedTeacher.info?.designation"
+                               class="text-sm text-gray-300"
+                               x-text="selectedTeacher.info?.designation || 'N/A'"></p>
+                        </div>
+                    </div>
+
+                    <button @click="showTeacherModal = false" class="text-gray-400 hover:text-white p-1">
+                        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                  d="M6 18L18 6M6 6l12 12"/>
+                        </svg>
+                    </button>
+                </div>
+
+                <div x-show="selectedTeacher.info" class="space-y-3 text-sm">
+                    <div class="flex items-center py-2 border-b border-gray-700">
+                        <svg class="w-4 h-4 mr-2 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                  d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z"/>
+                        </svg>
+                        <a :href="'mailto:' + selectedTeacher.info?.email"
+                           class="text-blue-300 font-medium hover:text-blue-200"
+                           x-text="selectedTeacher.info?.email || 'N/A'"></a>
+                    </div>
+                    <div class="flex items-center py-2">
+                        <svg class="w-4 h-4 mr-2 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                  d="M3 5a2 2 0 012-2h3.28a1 1 0 01.948.684l1.498 4.493a1 1 0 01-.502 1.21l-2.257 1.13a11.042 11.042 0 005.516 5.516l1.13-2.257a1 1 0 011.21-.502l4.493 1.498a1 1 0 01.684.949V19a2 2 0 01-2 2h-1C9.716 21 3 14.284 3 6V5z"/>
+                        </svg>
+                        <a :href="'tel:' + selectedTeacher.info?.cell_phone"
+                           class="text-blue-300 font-medium hover:text-blue-200"
+                           x-text="selectedTeacher.info?.cell_phone || 'N/A'"></a>
+                    </div>
+                </div>
+
+                <div x-show="!selectedTeacher.info" class="text-center py-4">
+                    <p class="text-gray-500">No additional information available</p>
                 </div>
             </div>
+        </div>
+    </div>
 
-            <!-- Loading Indicator -->
-            <div id="loading" class="text-center hidden py-8">
-                <div
-                    class="inline-block animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-white mb-4"></div>
-                <p class="text-white font-medium">Loading routine...</p>
+    <!-- Bottom Navigation -->
+    <div class="fixed bottom-0 left-0 right-0 bg-gray-900 border-t border-gray-800 px-6 py-3">
+        <div class="flex justify-around items-center max-w-md mx-auto">
+            <div class="flex flex-col items-center text-blue-400">
+                <svg class="w-5 h-5 mb-1" fill="currentColor" viewBox="0 0 20 20">
+                    <path d="M10 9a3 3 0 100-6 3 3 0 000 6zm-7 9a7 7 0 1114 0H3z"/>
+                </svg>
+                <span class="text-xs">Student</span>
             </div>
-
-            <!-- Error Message -->
-            <div id="errorMessage"
-                 class="hidden bg-red-50 border-l-4 border-red-500 p-4 mb-6 rounded-r-xl animate-fade-in">
-                <div class="flex items-center">
-                    <i class="fas fa-exclamation-circle text-red-500 mr-3"></i>
-                    <p id="errorText" class="text-sm text-red-700"></p>
-                </div>
+            <div class="flex flex-col items-center text-gray-500">
+                <svg class="w-5 h-5 mb-1" fill="currentColor" viewBox="0 0 20 20">
+                    <path
+                        d="M13 6a3 3 0 11-6 0 3 3 0 016 0zM18 8a2 2 0 11-4 0 2 2 0 014 0zM14 15a4 4 0 00-8 0v3h8v-3z"/>
+                </svg>
+                <span class="text-xs">Teacher</span>
             </div>
-
-            <!-- Results Container -->
-            <div id="routineResult" class="animate-fade-in"></div>
+            <div class="flex flex-col items-center text-gray-500">
+                <svg class="w-5 h-5 mb-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                          d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"/>
+                </svg>
+                <span class="text-xs">Room</span>
+            </div>
+            <div class="flex flex-col items-center text-gray-500">
+                <svg class="w-5 h-5 mb-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                          d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/>
+                </svg>
+                <span class="text-xs">Empty</span>
+            </div>
         </div>
     </div>
 </div>
 
-<!-- Floating Action Button for Mobile -->
-<div class="floating-btn" onclick="scrollToTop()">
-    <i class="fas fa-arrow-up"></i>
-</div>
-
 <script>
-    let allSections = [];
-    let currentRoutineData = null;
-    let isSidebarCollapsed = false;
+    function routineApp() {
+        return {
+            routineData: null,
+            loading: false,
+            error: null,
+            searchSection: '',
+            currentSection: null,
+            showTeacherModal: false,
+            selectedTeacher: {},
 
-    // Toggle sidebar function
-    function toggleSidebar() {
-        const sidebar = document.getElementById('sidebar');
-        const contentWrapper = document.getElementById('contentWrapper');
-        const overlay = document.querySelector('.sidebar-overlay');
-        const toggleBtn = document.getElementById('sidebarToggle');
+            searchRoutine() {
+                if (!this.searchSection.trim()) return;
+                this.fetchRoutine(this.searchSection.trim());
+            },
 
-        if (window.innerWidth <= 768) {
-            // Mobile behavior - toggle active state
-            sidebar.classList.toggle('active');
-            overlay.classList.toggle('active');
+            clearSearch() {
+                this.searchSection = '';
+                this.currentSection = null;
+                this.routineData = null;
+                this.error = null;
+            },
 
-            // Hide toggle button when sidebar is open
-            if (sidebar.classList.contains('active')) {
-                toggleBtn.classList.add('hidden');
-            } else {
-                toggleBtn.classList.remove('hidden');
-            }
-        } else {
-            // Desktop behavior - toggle collapsed state
-            isSidebarCollapsed = !isSidebarCollapsed;
-            if (isSidebarCollapsed) {
-                sidebar.classList.add('collapsed');
-            } else {
-                sidebar.classList.remove('collapsed');
-            }
-        }
-    }
+            async fetchRoutine(section) {
+                try {
+                    this.loading = true;
+                    this.error = null;
 
-    // Load section suggestions
-    async function loadSections() {
-        try {
-            const response = await fetch('/api/sections');
-            if (!response.ok) {
-                throw new Error('Failed to fetch sections');
-            }
-            const data = await response.json();
-            if (data.status === 'success') {
-                allSections = data.data;
-            }
-        } catch (error) {
-            console.error('Failed to load sections:', error);
-            showError('Failed to load section list. Please refresh the page.');
-        }
-    }
+                    const response = await fetch(`https://diu.zahidp.xyz/api/routine?section=${section}`);
 
-    // Show suggestions based on input
-    function showSuggestions() {
-        const input = document.getElementById('section').value.trim().toUpperCase();
-        const suggestionsContainer = document.getElementById('suggestions');
-
-        suggestionsContainer.innerHTML = '';
-        suggestionsContainer.classList.add('hidden');
-
-        if (!input || input.length < 1) {
-            return;
-        }
-
-        const filtered = allSections.filter(section =>
-            section.toUpperCase().includes(input)
-        ).slice(0, 8); // Limit to 8 suggestions
-
-        if (filtered.length === 0) {
-            return;
-        }
-
-        filtered.forEach(section => {
-            const div = document.createElement('div');
-            div.className = 'suggestion-item';
-            div.innerHTML = `
-                    <div class="flex items-center justify-between">
-                        <span>${section}</span>
-                        <i class="fas fa-arrow-right text-gray-400 text-xs"></i>
-                    </div>
-                `;
-            div.onclick = () => {
-                document.getElementById('section').value = section;
-                suggestionsContainer.classList.add('hidden');
-                getRoutine();
-            };
-            suggestionsContainer.appendChild(div);
-        });
-
-        suggestionsContainer.classList.remove('hidden');
-    }
-
-    // Close suggestions when clicking outside
-    document.addEventListener('click', (e) => {
-        const suggestions = document.getElementById('suggestions');
-        if (!e.target.closest('#section') && !e.target.closest('#suggestions')) {
-            suggestions.classList.add('hidden');
-        }
-    });
-
-    // Show error message
-    function showError(message) {
-        const errorDiv = document.getElementById('errorMessage');
-        const errorText = document.getElementById('errorText');
-        errorText.textContent = message;
-        errorDiv.classList.remove('hidden');
-        setTimeout(() => errorDiv.classList.add('hidden'), 5000);
-    }
-
-    // Hide error message
-    function hideError() {
-        document.getElementById('errorMessage').classList.add('hidden');
-    }
-
-    // Format time from HH:MM:SS to HH:MM
-    function formatTime(timeString) {
-        if (!timeString) return '';
-        return timeString.substring(0, 5);
-    }
-
-    // Create desktop table view
-    function createDesktopView(routine) {
-        const container = document.createElement('div');
-        container.className = 'glass-card rounded-2xl shadow-xl overflow-hidden desktop-table';
-
-        const table = document.createElement('table');
-        table.className = 'w-full';
-
-        // Table header
-        const headerRow = document.createElement('thead');
-        headerRow.innerHTML = `
-                <tr class="bg-gradient-to-r from-gray-50 to-gray-100">
-                    <th class="px-6 py-4 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">Time</th>
-                    <th class="px-6 py-4 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">Course</th>
-                    <th class="px-6 py-4 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">Section</th>
-                    <th class="px-6 py-4 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">Room</th>
-                    <th class="px-6 py-4 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">Teacher</th>
-                </tr>
-            `;
-        table.appendChild(headerRow);
-
-        const tbody = document.createElement('tbody');
-        tbody.className = 'divide-y divide-gray-200';
-
-        for (const day in routine) {
-            // Day header row
-            const dayHeaderRow = document.createElement('tr');
-            dayHeaderRow.className = 'day-row';
-            dayHeaderRow.innerHTML = `
-                    <td colspan="5" class="px-6 py-3 font-semibold text-center">
-                        <i class="fas fa-calendar-day mr-2"></i>
-                        ${day.charAt(0).toUpperCase() + day.slice(1).toLowerCase()}
-                    </td>
-                `;
-            tbody.appendChild(dayHeaderRow);
-
-            // Class rows
-            routine[day].forEach((item, index) => {
-                const row = document.createElement('tr');
-                row.className = 'class-row bg-white';
-                row.innerHTML = `
-                        <td class="px-6 py-4">
-                            <span class="time-badge">
-                                ${formatTime(item.start_time)} - ${formatTime(item.end_time)}
-                            </span>
-                        </td>
-                        <td class="px-6 py-4">
-                            <span class="course-badge">
-                                ${item.course || '-'}
-                            </span>
-                        </td>
-                        <td class="px-6 py-4">
-                            <span class="section-badge">
-                                ${item.section || '-'}
-                            </span>
-                        </td>
-                        <td class="px-6 py-4 text-gray-600">
-                            <i class="fas fa-door-open mr-1"></i>
-                            ${item.room || '-'}
-                        </td>
-                        <td class="px-6 py-4 text-gray-600">
-                            <i class="fas fa-user mr-1"></i>
-                            ${item.teacher || '-'}
-                        </td>
-                    `;
-                tbody.appendChild(row);
-            });
-        }
-
-        table.appendChild(tbody);
-        container.appendChild(table);
-        return container;
-    }
-
-    // Create mobile timeline view
-    function createMobileView(routine) {
-        const container = document.createElement('div');
-        container.className = 'mobile-view mobile-timeline';
-
-        for (const day in routine) {
-            const dayContainer = document.createElement('div');
-            dayContainer.className = 'p-4';
-
-            // Day header
-            const dayHeader = document.createElement('div');
-            dayHeader.className = 'mobile-day-header';
-            dayHeader.innerHTML = `
-                    <i class="fas fa-calendar-day mr-2"></i>
-                    ${day.charAt(0).toUpperCase() + day.slice(1).toLowerCase()}
-                `;
-            dayContainer.appendChild(dayHeader);
-
-            // Process classes with break detection
-            const dayClasses = routine[day];
-            for (let i = 0; i < dayClasses.length; i++) {
-                const currentClass = dayClasses[i];
-                const nextClass = dayClasses[i + 1];
-
-                // Add current class
-                const classItem = document.createElement('div');
-                classItem.className = 'mobile-class-item';
-
-                classItem.innerHTML = `
-                        <div class="time-label">
-                            ${formatTime(currentClass.start_time)}
-                            <span style="font-size: 0.9rem; color: #6b7280;">- ${formatTime(currentClass.end_time)}</span>
-                        </div>
-                        <div class="course-title">${currentClass.course || 'Unknown Course'}</div>
-                        <div class="course-details">
-                            <div class="detail-label">Course</div>
-                            <div class="detail-value course-code">${currentClass.course || '-'}</div>
-                            <div class="detail-label">Section</div>
-                            <div class="detail-value section-code">${currentClass.section || '-'}</div>
-                            <div class="detail-label">Teacher</div>
-                            <div class="detail-value teacher-name">${currentClass.teacher || '-'}</div>
-                            <div class="detail-label">Room</div>
-                            <div class="detail-value room-name">${currentClass.room || '-'}</div>
-                        </div>
-                    `;
-                dayContainer.appendChild(classItem);
-
-                // Add break time if there's a gap to next class
-                if (nextClass) {
-                    const currentEndTime = new Date(`1970-01-01T${currentClass.end_time}`);
-                    const nextStartTime = new Date(`1970-01-01T${nextClass.start_time}`);
-                    const breakDuration = (nextStartTime - currentEndTime) / 1000 / 60; // minutes
-
-                    if (breakDuration > 0) {
-                        const breakItem = document.createElement('div');
-                        breakItem.className = 'mobile-break-item';
-
-                        const hours = Math.floor(breakDuration / 60);
-                        const minutes = breakDuration % 60;
-                        let breakText = '';
-
-                        if (hours > 0) {
-                            breakText = `${hours}h ${minutes}m Break`;
-                        } else {
-                            breakText = `${minutes}m Break`;
+                    if (!response.ok) {
+                        if (response.status === 404) {
+                            throw new Error(`No routine found for section "${section}"`);
                         }
-
-                        breakItem.innerHTML = `
-                                <div class="break-text">
-                                    <i class="fas fa-coffee"></i>
-                                    <span>Break Time (Section: ${currentClass.section || 'N/A'})</span>
-                                </div>
-                                <div style="font-size: 0.8rem; color: #6b7280; margin-top: 0.25rem;">
-                                    ${formatTime(currentClass.end_time)} - ${formatTime(nextClass.start_time)} (${breakText})
-                                </div>
-                            `;
-                        dayContainer.appendChild(breakItem);
+                        throw new Error(`HTTP error! status: ${response.status}`);
                     }
+
+                    const data = await response.json();
+
+                    if (data.status === 'success') {
+                        this.routineData = data.data;
+                        this.currentSection = section;
+
+                        const hasClasses = Object.values(data.data).some(dayClasses => dayClasses.length > 0);
+                        if (!hasClasses) {
+                            this.error = `No classes found for section "${section}"`;
+                            this.routineData = null;
+                            this.currentSection = null;
+                        }
+                    } else {
+                        throw new Error(data.message || 'API returned error status');
+                    }
+                } catch (err) {
+                    this.error = err.message || 'Failed to load routine data';
+                    this.routineData = null;
+                    this.currentSection = null;
+                } finally {
+                    this.loading = false;
+                }
+            },
+
+            hasAnyClasses() {
+                if (!this.routineData) return false;
+                return Object.values(this.routineData).some(dayClasses => dayClasses.length > 0);
+            },
+
+            formatDayName(dayName) {
+                return dayName.charAt(0) + dayName.slice(1).toLowerCase();
+            },
+
+            showTeacherDetails(teacherInfo, shortName) {
+                this.selectedTeacher = {
+                    name: teacherInfo?.name || shortName,
+                    shortName: shortName,
+                    info: teacherInfo
+                };
+                this.showTeacherModal = true;
+            },
+
+            formatTime(timeString) {
+                try {
+                    const [hours, minutes] = timeString.split(':');
+                    const hour = parseInt(hours);
+                    const minute = minutes;
+
+                    if (hour === 0) return `12:${minute}`;
+                    if (hour < 12) return `${hour}:${minute}`;
+                    if (hour === 12) return `12:${minute}`;
+                    return `${hour - 12}:${minute}`;
+                } catch (err) {
+                    return timeString;
                 }
             }
-
-            container.appendChild(dayContainer);
-        }
-
-        return container;
-    }
-
-    // Fetch routine by section
-    async function getRoutine() {
-        const section = document.getElementById('section').value.trim().toUpperCase();
-        const result = document.getElementById('routineResult');
-        const loading = document.getElementById('loading');
-
-        result.innerHTML = '';
-        hideError();
-
-        if (!section) {
-            showError('Please enter a section (e.g., 61_A, 61_B, 61_N)');
-            return;
-        }
-
-        loading.classList.remove('hidden');
-
-        try {
-            const response = await fetch(`/api/routine?section=${encodeURIComponent(section)}`);
-
-            if (!response.ok) {
-                throw new Error('Network response was not ok');
-            }
-
-            const data = await response.json();
-
-            if (data.status === 'error') {
-                showError(data.message || `No schedule found for section ${section}`);
-                return;
-            }
-
-            const routine = data.data;
-            currentRoutineData = routine;
-
-            if (!routine || Object.keys(routine).length === 0) {
-                result.innerHTML = `
-                        <div class="glass-card rounded-2xl p-6 text-center">
-                            <i class="fas fa-calendar-times text-4xl text-yellow-500 mb-4"></i>
-                            <h3 class="text-lg font-semibold text-gray-800 mb-2">No Routine Found</h3>
-                            <p class="text-gray-600">No schedule found for section ${section}</p>
-                        </div>
-                    `;
-                return;
-            }
-
-            // Create both desktop and mobile views
-            const desktopView = createDesktopView(routine);
-            const mobileView = createMobileView(routine);
-
-            result.appendChild(desktopView);
-            result.appendChild(mobileView);
-
-        } catch (error) {
-            console.error('Error fetching routine:', error);
-            showError('Failed to fetch routine. Please try again.');
-        } finally {
-            loading.classList.add('hidden');
         }
     }
-
-    // Scroll to top function
-    function scrollToTop() {
-        window.scrollTo({
-            top: 0,
-            behavior: 'smooth'
-        });
-    }
-
-    // Initialize on load
-    document.addEventListener('DOMContentLoaded', () => {
-        loadSections();
-
-        // Add event listener for Enter key
-        document.getElementById('section').addEventListener('keypress', (e) => {
-            if (e.key === 'Enter') {
-                document.getElementById('suggestions').classList.add('hidden');
-                getRoutine();
-            }
-        });
-
-        // Add touch support for mobile suggestions
-        document.addEventListener('touchstart', (e) => {
-            const suggestions = document.getElementById('suggestions');
-            if (!e.target.closest('#section') && !e.target.closest('#suggestions')) {
-                suggestions.classList.add('hidden');
-            }
-        });
-
-        // Handle window resize
-        window.addEventListener('resize', () => {
-            const sidebar = document.getElementById('sidebar');
-            const toggleBtn = document.getElementById('sidebarToggle');
-            const overlay = document.querySelector('.sidebar-overlay');
-
-            if (window.innerWidth > 768) {
-                // Desktop view - ensure sidebar is visible and not in mobile active state
-                sidebar.classList.remove('active');
-                overlay.classList.remove('active');
-                toggleBtn.classList.add('hidden');
-
-                // Reset collapsed state if needed
-                if (isSidebarCollapsed) {
-                    sidebar.classList.add('collapsed');
-                } else {
-                    sidebar.classList.remove('collapsed');
-                }
-            } else {
-                // Mobile view - hide sidebar by default
-                sidebar.classList.remove('active');
-                overlay.classList.remove('active');
-                toggleBtn.classList.remove('hidden');
-            }
-        });
-    });
 </script>
 </body>
 </html>
