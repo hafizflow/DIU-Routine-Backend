@@ -254,7 +254,7 @@ class RoutineController extends Controller
                         'section' => $class->section,
                         'course_title' => optional($class->course)->course_title,
                         'room' => $normalizeRoom($class->room),
-                        'original_room' => $class->room,
+                        'original_room' => $normalizeRoom($class->room),
                         'teacher' => $class->teacher,
                         'teacher_info' => $class->teacherInfo ? [
                             'name' => $class->teacherInfo->name,
