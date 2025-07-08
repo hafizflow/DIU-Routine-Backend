@@ -220,6 +220,7 @@ class RoutineController extends Controller
 
         // Enhanced room normalization
         $normalizeRoom = function ($room) {
+            $room = str_replace(["\r", "\n"], ' ', $room); // Remove \r and \n
             $room = trim(preg_replace('/\s+/', ' ', $room)); // Remove extra spaces
             $room = preg_replace('/[^A-Za-z0-9\-()\s]/', '', $room); // Keep only allowed chars
             $room = str_replace(['G01', 'G1'], 'G1', $room); // Standardize room numbers
@@ -253,7 +254,7 @@ class RoutineController extends Controller
                         'section' => $class->section,
                         'course_title' => optional($class->course)->course_title,
                         'room' => $normalizeRoom($class->room),
-                        'original_room' => $class->room,
+                        'original_room' => $normalizeRoom($class->room),
                         'teacher' => $class->teacher,
                         'teacher_info' => $class->teacherInfo ? [
                             'name' => $class->teacherInfo->name,
@@ -311,7 +312,7 @@ class RoutineController extends Controller
         }
 
         return response()->json([
-            'status' => 'success',
+            'status' => 'Success',
             'data' => $routine,
         ]);
     }
