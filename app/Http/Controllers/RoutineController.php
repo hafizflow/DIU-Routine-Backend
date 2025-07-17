@@ -220,7 +220,7 @@ class RoutineController extends Controller
 
         // Enhanced room normalization
         $normalizeRoom = function ($room) {
-            $room = str_replace(["\r", "\n"], ' ', $room); // Remove \r and \n
+            $room = str_replace(["\r", "\n"], '', $room); // Remove \r and \n
             $room = trim(preg_replace('/\s+/', ' ', $room)); // Remove extra spaces
             $room = preg_replace('/[^A-Za-z0-9\-()\s]/', '', $room); // Keep only allowed chars
             $room = str_replace(['G01', 'G1'], 'G1', $room); // Standardize room numbers
@@ -512,6 +512,37 @@ class RoutineController extends Controller
                 'image_url' => $teacherInfo->image_url,
             ] : null,
             'data' => $orderedClasses
+        ]);
+    }
+
+    public function getTeacherInfo(Request $request): JsonResponse
+    {
+        $request->validate([
+            'teacher' => 'required|string|max:10'
+        ]);
+
+        $teacherInitial = strtoupper($request->input('teacher'));
+
+        $teacherInfo = Teacher::where('teacher', $teacherInitial)->first();
+
+        if (!$teacherInfo) {
+            return response()->json([
+                'status' => 'not_found',
+                'message' => "No teacher found with initial: $teacherInitial",
+                'teacher_info' => null
+            ]);
+        }
+
+        return response()->json([
+            'status' => 'success',
+            'teacher' => $teacherInitial,
+            'teacher_info' => [
+                'name' => $teacherInfo->name,
+                'designation' => $teacherInfo->designation,
+                'cell_phone' => $teacherInfo->cell_phone,
+                'email' => $teacherInfo->email,
+                'image_url' => $teacherInfo->image_url,
+            ]
         ]);
     }
 }

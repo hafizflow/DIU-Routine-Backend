@@ -22,6 +22,7 @@ Route::get('/teachers', [RoutineController::class, 'getAllTeachers']);
 Route::get('/routine', [RoutineController::class, 'getRoutine']);
 Route::get('/empty-rooms', [RoutineController::class, 'getEmptyRooms']);
 Route::get('/teacher-classes', [RoutineController::class, 'getTeacherClasses']);
+Route::get('/teacherInfo', [RoutineController::class, 'getTeacherInfo']);
 
 
 // ----------- Routine Import Operations ----------- //
