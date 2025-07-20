@@ -231,7 +231,7 @@ class RoutineController extends Controller
 
         // Helper to normalize room
         $normalizeRoom = function ($room) {
-            $room = str_replace(["\r", "\n"], '', $room);
+            $room = str_replace(["\r", "\n"], ' ', $room);
             $room = trim(preg_replace('/\s+/', ' ', $room));
             $room = preg_replace('/[^A-Za-z0-9\-()\s]/', '', $room);
             $room = str_replace(['G01', 'G1'], 'G1', $room);
@@ -348,10 +348,10 @@ class RoutineController extends Controller
             '08:30:00' => 1,
             '10:00:00' => 2,
             '11:30:00' => 3,
-            '01:00:00' => 4,  // Note: This is 1:00 PM
-            '02:30:00' => 5,   // 2:30 PM
-            '04:00:00' => 6,   // 4:00 PM
-            '05:30:00' => 7    // 5:30 PM
+            '01:00:00' => 4,
+            '02:30:00' => 5,
+            '04:00:00' => 6,
+            '05:30:00' => 7
         ];
 
         $classes = Routine::with(['course', 'teacherInfo'])
@@ -370,13 +370,12 @@ class RoutineController extends Controller
                 $day = strtoupper($class->day);
                 $startTime = $class->start_time;
 
-                // Ensure time is in HH:MM:SS format
                 if (strlen($startTime) === 5) {
                     $startTime .= ':00';
                 }
 
-                $dayValue = $dayOrder[$day] ?? 7; // Default to high number if day not found
-                $timeValue = $timeOrder[$startTime] ?? 8; // Default to higher number if time not found
+                $dayValue = $dayOrder[$day] ?? 7;
+                $timeValue = $timeOrder[$startTime] ?? 8;
 
                 return ($dayValue * 100) + $timeValue;
             })
@@ -388,7 +387,6 @@ class RoutineController extends Controller
                 $mergedClasses = collect();
                 $previousClass = null;
 
-                // First sort the day's classes according to our custom time order
                 $sortedClasses = $dayClasses->sortBy(function ($class) use ($timeOrder) {
                     $startTime = $class->start_time;
                     if (strlen($startTime) === 5) {
@@ -406,11 +404,12 @@ class RoutineController extends Controller
                         'course_code' => $class->course_code,
                         'section' => $class->section,
                         'course_title' => optional($class->course)->course_title,
-                        'room' => $normalizedRoom,
+                        'room' => str_replace(["\r", "\n"], ' ', $class->room),
                         'original_room' => $class->room,
                     ];
 
-                    if ($previousClass &&
+                    if (
+                        $previousClass &&
                         $previousClass['course_code'] === $currentClassData['course_code'] &&
                         $previousClass['section'] === $currentClassData['section'] &&
                         $previousClass['course_title'] === $currentClassData['course_title'] &&
@@ -421,7 +420,7 @@ class RoutineController extends Controller
                         $previousClass['end_time'] = $class->end_time;
                     } else {
                         if ($previousClass) {
-                            $previousClass['room'] = $previousClass['original_room'];
+                            $previousClass['room'] = str_replace(["\r", "\n"], ' ', $previousClass['original_room']);
                             unset($previousClass['original_room']);
                             $mergedClasses->push($previousClass);
                         }
@@ -434,12 +433,11 @@ class RoutineController extends Controller
                 }
 
                 if ($previousClass) {
-                    $previousClass['room'] = $previousClass['original_room'];
+                    $previousClass['room'] = str_replace(["\r", "\n"], ' ', $previousClass['original_room']);
                     unset($previousClass['original_room']);
                     $mergedClasses->push($previousClass);
                 }
 
-                // Sort the merged classes according to our custom time order
                 return $mergedClasses->sortBy(function ($class) use ($timeOrder) {
                     $startTime = $class['start_time'];
                     if (strlen($startTime) === 5) {
@@ -449,15 +447,11 @@ class RoutineController extends Controller
                 })->values();
             });
 
-        // Ensure all days are present in the response
-        $dayOrder = [
-            'SATURDAY', 'SUNDAY', 'MONDAY',
-            'TUESDAY', 'WEDNESDAY', 'THURSDAY'
-        ];
-        $orderedClasses = collect($dayOrder)
-            ->mapWithKeys(function ($day) use ($classes) {
-                return [$day => $classes->get($day, [])];
-            });
+        $dayOrder = ['SATURDAY', 'SUNDAY', 'MONDAY', 'TUESDAY', 'WEDNESDAY', 'THURSDAY'];
+
+        $orderedClasses = collect($dayOrder)->mapWithKeys(function ($day) use ($classes) {
+            return [$day => $classes->get($day, [])];
+        });
 
         if ($orderedClasses->flatten(1)->isEmpty()) {
             return response()->json([
