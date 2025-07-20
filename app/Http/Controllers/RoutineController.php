@@ -181,15 +181,27 @@ class RoutineController extends Controller
 
     public function getAllTeachers(): JsonResponse
     {
-        $teachers = Routine::whereNotNull('teacher')
+        // Get distinct teacher initials from routines
+        $teacherInitials = Routine::whereNotNull('teacher')
             ->distinct()
-            ->pluck('teacher')
-            ->sort()
-            ->values();
+            ->pluck('teacher');
+
+        // Get matching teachers from teachers table
+        $teachers = Teacher::whereIn('teacher', $teacherInitials)
+            ->get(['teacher', 'name']);
+
+        // Build result: map initial to name (if matched)
+        $result = $teacherInitials->map(function ($initial) use ($teachers) {
+            $match = $teachers->firstWhere('teacher', $initial);
+            return [
+                'teacher' => $initial,
+                'name' => $match ? $match->name : null,
+            ];
+        })->sortBy('teacher')->values();
 
         return response()->json([
             'status' => 'success',
-            'data' => $teachers,
+            'data' => $result,
         ]);
     }
 
