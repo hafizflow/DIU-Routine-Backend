@@ -8,7 +8,6 @@ use App\Http\Requests\RoutineImportRequest;
 use App\Models\Course;
 use App\Models\Routine;
 use App\Models\Teacher;
-use Illuminate\Database\Eloquent\Collection;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Http\Request;
@@ -209,7 +208,7 @@ class RoutineController extends Controller
             '13:00:00', '14:30:00', '16:00:00', '17:30:00'
         ];
 
-        // Normalize time format for comparison
+        // Helper to normalize time
         $normalizeTime = function ($time) {
             $time = trim($time);
             if (strlen($time) === 5) {
@@ -218,12 +217,12 @@ class RoutineController extends Controller
             return $time;
         };
 
-        // Enhanced room normalization
+        // Helper to normalize room
         $normalizeRoom = function ($room) {
-            $room = str_replace(["\r", "\n"], '', $room); // Remove \r and \n
-            $room = trim(preg_replace('/\s+/', ' ', $room)); // Remove extra spaces
-            $room = preg_replace('/[^A-Za-z0-9\-()\s]/', '', $room); // Keep only allowed chars
-            $room = str_replace(['G01', 'G1'], 'G1', $room); // Standardize room numbers
+            $room = str_replace(["\r", "\n"], '', $room);
+            $room = trim(preg_replace('/\s+/', ' ', $room));
+            $room = preg_replace('/[^A-Za-z0-9\-()\s]/', '', $room);
+            $room = str_replace(['G01', 'G1'], 'G1', $room);
             return $room;
         };
 
@@ -237,64 +236,69 @@ class RoutineController extends Controller
             })
             ->map(function ($daySchedule) use ($timeOrder, $normalizeTime, $normalizeRoom) {
                 $mergedClasses = collect();
-                $previousClass = null;
 
-                // Sort by time according to our timeOrder
-                $sortedClasses = $daySchedule->sortBy(function ($class) use ($timeOrder, $normalizeTime) {
-                    $normalizedTime = $normalizeTime($class->start_time);
-                    $index = array_search($normalizedTime, $timeOrder);
-                    return $index !== false ? $index : 999;
-                })->values();
+                // ✅ Group classes by section to avoid interleaved issues
+                $dayScheduleBySection = $daySchedule->groupBy('section');
 
-                foreach ($sortedClasses as $class) {
-                    $currentClassData = [
-                        'start_time' => $normalizeTime($class->start_time),
-                        'end_time' => $normalizeTime($class->end_time),
-                        'course_code' => $class->course_code,
-                        'section' => $class->section,
-                        'course_title' => optional($class->course)->course_title,
-                        'room' => $normalizeRoom($class->room),
-                        'original_room' => $normalizeRoom($class->room),
-                        'teacher' => $class->teacher,
-                        'teacher_info' => $class->teacherInfo ? [
-                            'name' => $class->teacherInfo->name,
-                            'designation' => $class->teacherInfo->designation,
-                            'cell_phone' => $class->teacherInfo->cell_phone,
-                            'email' => $class->teacherInfo->email,
-                            'image_url' => $class->teacherInfo->image_url,
-                        ] : null,
-                    ];
+                foreach ($dayScheduleBySection as $sectionClasses) {
+                    $previousClass = null;
 
-                    // Check if we can merge with previous class
-                    $canMerge = $previousClass &&
-                        $previousClass['course_code'] === $currentClassData['course_code'] &&
-                        $previousClass['section'] === $currentClassData['section'] &&
-                        $previousClass['teacher'] === $currentClassData['teacher'] &&
-                        $previousClass['room'] === $currentClassData['room'] &&
-                        $previousClass['end_time'] === $currentClassData['start_time'];
+                    // Sort by time
+                    $sortedClasses = $sectionClasses->sortBy(function ($class) use ($timeOrder, $normalizeTime) {
+                        $normalizedTime = $normalizeTime($class->start_time);
+                        $index = array_search($normalizedTime, $timeOrder);
+                        return $index !== false ? $index : 999;
+                    })->values();
 
-                    if ($canMerge) {
-                        // Merge with previous class
-                        $previousClass['end_time'] = $currentClassData['end_time'];
-                    } else {
-                        if ($previousClass) {
-                            // Restore original room format
-                            $previousClass['room'] = $previousClass['original_room'];
-                            unset($previousClass['original_room']);
-                            $mergedClasses->push($previousClass);
+                    foreach ($sortedClasses as $class) {
+                        $currentClassData = [
+                            'start_time' => $normalizeTime($class->start_time),
+                            'end_time' => $normalizeTime($class->end_time),
+                            'course_code' => $class->course_code,
+                            'section' => $class->section,
+                            'course_title' => optional($class->course)->course_title,
+                            'room' => $normalizeRoom($class->room),
+                            'original_room' => $normalizeRoom($class->room),
+                            'teacher' => $class->teacher,
+                            'teacher_info' => $class->teacherInfo ? [
+                                'name' => $class->teacherInfo->name,
+                                'designation' => $class->teacherInfo->designation,
+                                'cell_phone' => $class->teacherInfo->cell_phone,
+                                'email' => $class->teacherInfo->email,
+                                'image_url' => $class->teacherInfo->image_url,
+                            ] : null,
+                        ];
+
+                        $canMerge = $previousClass &&
+                            $previousClass['course_code'] === $currentClassData['course_code'] &&
+                            $previousClass['section'] === $currentClassData['section'] &&
+                            $previousClass['teacher'] === $currentClassData['teacher'] &&
+                            $previousClass['room'] === $currentClassData['room'] &&
+                            $previousClass['end_time'] === $currentClassData['start_time'];
+
+                        if ($canMerge) {
+                            // Extend previous class's end time
+                            $previousClass['end_time'] = $currentClassData['end_time'];
+                        } else {
+                            // Push finished class and start new one
+                            if ($previousClass) {
+                                $previousClass['room'] = $previousClass['original_room'];
+                                unset($previousClass['original_room']);
+                                $mergedClasses->push($previousClass);
+                            }
+                            $previousClass = $currentClassData;
                         }
-                        $previousClass = $currentClassData;
+                    }
+
+                    // Push the final class in the group
+                    if ($previousClass) {
+                        $previousClass['room'] = $previousClass['original_room'];
+                        unset($previousClass['original_room']);
+                        $mergedClasses->push($previousClass);
                     }
                 }
 
-                // Add the last class if it exists
-                if ($previousClass) {
-                    $previousClass['room'] = $previousClass['original_room'];
-                    unset($previousClass['original_room']);
-                    $mergedClasses->push($previousClass);
-                }
-
-                // Final sort by time
+                // Final sort of the day
                 return $mergedClasses->sortBy(function ($class) use ($timeOrder) {
                     $index = array_search($class['start_time'], $timeOrder);
                     return $index !== false ? $index : 999;
@@ -315,56 +319,6 @@ class RoutineController extends Controller
             'status' => 'Success',
             'data' => $routine,
         ]);
-    }
-
-    public function importRoutine(RoutineImportRequest $request): JsonResponse
-    {
-        try {
-            $file = $request->file('pdf_file');
-            if (!$file->isValid()) {
-                return response()->json([
-                    'status' => 'error',
-                    'message' => 'Invalid file upload. Please ensure the file is a valid PDF.',
-                ], 400);
-            }
-
-            // Store the file
-            $path = $file->storeAs('pdf', 'routine.pdf', 'public');
-            $fullPath = storage_path('app/public/' . $path);
-
-            //  Verify file exists
-            if (!file_exists($fullPath)) {
-                return response()->json([
-                    'status' => 'error',
-                    'message' => 'Failed to store the uploaded file.',
-                ], 500);
-            }
-
-            // Parse the PDF and extract the routine
-            $action = new ParsePdfTableAction();
-            $schedule = $action->execute($fullPath);
-
-            // Clear existing records (optional)
-            Routine::truncate();
-
-            foreach ($schedule as $entry) {
-                Routine::create($entry);
-            }
-
-            // Delete the temporary file
-            Storage::disk('local')->delete($path);
-
-            return response()->json([
-                'status' => 'success',
-                'message' => 'Class routine imported successfully',
-                'records_imported' => count($schedule),
-            ], 200);
-        } catch (\Exception $e) {
-            return response()->json([
-                'status' => 'error',
-                'message' => 'Failed to import class routine: ' . $e->getMessage(),
-            ], 500);
-        }
     }
 
     public function getTeacherClasses(Request $request): JsonResponse
@@ -544,5 +498,55 @@ class RoutineController extends Controller
                 'image_url' => $teacherInfo->image_url,
             ]
         ]);
+    }
+
+    public function importRoutine(RoutineImportRequest $request): JsonResponse
+    {
+        try {
+            $file = $request->file('pdf_file');
+            if (!$file->isValid()) {
+                return response()->json([
+                    'status' => 'error',
+                    'message' => 'Invalid file upload. Please ensure the file is a valid PDF.',
+                ], 400);
+            }
+
+            // Store the file
+            $path = $file->storeAs('pdf', 'routine.pdf', 'public');
+            $fullPath = storage_path('app/public/' . $path);
+
+            //  Verify file exists
+            if (!file_exists($fullPath)) {
+                return response()->json([
+                    'status' => 'error',
+                    'message' => 'Failed to store the uploaded file.',
+                ], 500);
+            }
+
+            // Parse the PDF and extract the routine
+            $action = new ParsePdfTableAction();
+            $schedule = $action->execute($fullPath);
+
+            // Clear existing records (optional)
+            Routine::truncate();
+
+            foreach ($schedule as $entry) {
+                Routine::create($entry);
+            }
+
+            // Delete the temporary file
+            Storage::disk('local')->delete($path);
+
+            return response()->json([
+                'status' => 'success',
+                'message' => 'Class routine imported successfully',
+                'records_imported' => count($schedule),
+            ], 200);
+        } catch (\Exception $e) {
+            return response()->json([
+                'status' => 'error',
+                'message' => 'Failed to import class routine: ' . $e->getMessage(),
+            ], 500);
+        }
     }
 }

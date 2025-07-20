@@ -83,7 +83,6 @@ class TeacherInfoController extends Controller
         // Step 2: Visit each profile link and extract detailed info
         foreach ($facultyLinks as $link) {
             $profileResponse = Http::get($link);
-            if (!$profileResponse->successful()) continue;
 
             $profileHtml = $profileResponse->body();
             $profileCrawler = new Crawler($profileHtml);
@@ -127,9 +126,9 @@ class TeacherInfoController extends Controller
             ];
         }
 
-        foreach ($facultyData as $faculty) {
-            Teacher::updateOrCreate($faculty);
-        }
+//        foreach ($facultyData as $faculty) {
+//            Teacher::updateOrCreate($faculty);
+//        }
 
         return response()->json($facultyData);
     }
