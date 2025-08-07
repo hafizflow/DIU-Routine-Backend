@@ -343,7 +343,6 @@ class RoutineController extends Controller
 
         $teacherInfo = Teacher::where('teacher', $teacherInitial)->first();
 
-        // Define the custom time order for sorting
         $timeOrder = [
             '08:30:00' => 1,
             '10:00:00' => 2,
@@ -396,8 +395,8 @@ class RoutineController extends Controller
                 })->values();
 
                 foreach ($sortedClasses as $class) {
-                    // Normalize room string
-                    $normalizedRoom = preg_replace('/[^A-Za-z0-9\-]/', '', $class->room);
+                    // Normalize room string for comparison
+                    $normalizedRoom = strtoupper(preg_replace('/[^A-Za-z0-9]/', '', $class->room));
                     $normalizedRoom = str_replace(['G01', 'G1'], 'G1', $normalizedRoom);
 
                     $currentClassData = [
@@ -405,7 +404,7 @@ class RoutineController extends Controller
                         'section' => $class->section,
                         'course_title' => optional($class->course)->course_title,
                         'room' => str_replace(["\r", "\n"], ' ', $class->room),
-                        'original_room' => $class->room,
+                        'normalized_room' => $normalizedRoom
                     ];
 
                     if (
@@ -413,15 +412,15 @@ class RoutineController extends Controller
                         $previousClass['course_code'] === $currentClassData['course_code'] &&
                         $previousClass['section'] === $currentClassData['section'] &&
                         $previousClass['course_title'] === $currentClassData['course_title'] &&
-                        $previousClass['room'] === $currentClassData['room'] &&
+                        $previousClass['normalized_room'] === $currentClassData['normalized_room'] &&
                         $previousClass['end_time'] === $class->start_time
                     ) {
                         // Merge with previous class
                         $previousClass['end_time'] = $class->end_time;
+                        $previousClass['room'] = $currentClassData['room']; // update to most recent format
                     } else {
                         if ($previousClass) {
-                            $previousClass['room'] = str_replace(["\r", "\n"], ' ', $previousClass['original_room']);
-                            unset($previousClass['original_room']);
+                            unset($previousClass['normalized_room']);
                             $mergedClasses->push($previousClass);
                         }
                         $previousClass = [
@@ -433,8 +432,7 @@ class RoutineController extends Controller
                 }
 
                 if ($previousClass) {
-                    $previousClass['room'] = str_replace(["\r", "\n"], ' ', $previousClass['original_room']);
-                    unset($previousClass['original_room']);
+                    unset($previousClass['normalized_room']);
                     $mergedClasses->push($previousClass);
                 }
 
@@ -474,6 +472,7 @@ class RoutineController extends Controller
             'data' => $orderedClasses
         ]);
     }
+
 
     public function getTeacherInfo(Request $request): JsonResponse
     {
