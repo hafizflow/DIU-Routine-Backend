@@ -28,7 +28,7 @@ class RoutineController extends Controller
 
         return response()->json([
             'status' => 'success',
-            'last_updated' => $routine->first()->getOriginal('updated_at'),
+            'version' => 'Spring 2025',
             'data' => $routine,
         ]);
     }
@@ -40,14 +40,14 @@ class RoutineController extends Controller
         if ($courses->isEmpty()) {
             return response()->json([
                 'status' => 'empty',
-                'message' => 'No routine data found.',
+                'message' => 'No course data found.',
                 'data' => [],
             ]);
         }
 
         return response()->json([
             'status' => 'success',
-            'last_updated' => $courses->first()->getOriginal('updated_at'),
+            'version' => 'v1',
             'data' => $courses,
         ]);
     }
@@ -66,7 +66,7 @@ class RoutineController extends Controller
 
         return response()->json([
             'status' => 'success',
-            'last_updated' => $teachers->first()->getOriginal('updated_at'),
+            'version' => 'v1',
             'data' => $teachers,
         ]);
     }
