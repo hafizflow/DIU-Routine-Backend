@@ -58,7 +58,7 @@ class RoutineController extends Controller
 
         if ($teachers->isEmpty()) {
             return response()->json([
-                'status' => 'empty',
+                'status' => 'failed',
                 'message' => 'No teachers found.',
                 'data' => [],
             ]);
