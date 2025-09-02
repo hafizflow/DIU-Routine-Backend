@@ -20,7 +20,7 @@ class RoutineController extends Controller
 
         if ($routine->isEmpty()) {
             return response()->json([
-                'status' => 'empty',
+                'status' => 'failed',
                 'message' => 'No routine data found.',
                 'data' => [],
             ]);
@@ -39,7 +39,7 @@ class RoutineController extends Controller
 
         if ($courses->isEmpty()) {
             return response()->json([
-                'status' => 'empty',
+                'status' => 'failed',
                 'message' => 'No course data found.',
                 'data' => [],
             ]);
@@ -54,7 +54,7 @@ class RoutineController extends Controller
 
     public function getTeacher(): JsonResponse
     {
-        $teachers = Teacher::all()->makeHidden(['created_at', 'updated_at']);
+        $teachers = Teacher::all()->makeHidden(['created_at', 'updated_at', 'employee_id']);
 
         if ($teachers->isEmpty()) {
             return response()->json([
