@@ -8,6 +8,14 @@ use Illuminate\Support\Facades\Route;
 use App\Http\Controllers\RoutineController;
 
 
+Route::get('/version', function () {
+    return response()->json([
+        'routine' => 'Summer 2025',
+        'teacher' => 'v1',
+        'course' => 'v1'
+    ]);
+});
+
 // ----------- Routine Main 3 Table Routes ----------- //
 Route::get('/course-table', [RoutineController::class, 'getCourses']);
 Route::get('/teacher-table', [RoutineController::class, 'getTeacher']);
