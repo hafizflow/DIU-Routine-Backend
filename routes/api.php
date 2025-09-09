@@ -10,7 +10,7 @@ use App\Http\Controllers\RoutineController;
 
 Route::get('/version', function () {
     return response()->json([
-        'routine' => 'Summer 2024',
+        'routine' => 'Fall 2025',
         'teacher' => 'v1',
         'course' => 'v1'
     ]);
