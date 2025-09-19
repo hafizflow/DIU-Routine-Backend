@@ -104,7 +104,21 @@ class ParsePdfTableAction
 
     private function isTimeColumn($row): bool
     {
-        return $row[0] === "08:30-10:00";
+        $validTimeSlots = [
+            "08:30-10:00",
+            "10:00-11:30",
+            "11:30-01:00",
+            "01:00-02:30",
+            "02:30-04:00",
+            "04:00-05:30"
+        ];
+
+        foreach ($row as $cell) {
+            if (in_array($cell, $validTimeSlots)) {
+                return true;
+            }
+        }
+        return false;
     }
 
     private function isHeadingColumn($row): bool
