@@ -62,7 +62,7 @@ class ParsePdfTableAction
             }
 
             collect($row)
-                ->chunk(2)
+                ->chunk(3)
                 ->map(function ($item) {
                     return $item->values();
                 })
@@ -71,8 +71,8 @@ class ParsePdfTableAction
                         'room' => $item[0] ?? null,
                         'course_code' => ($value = strstr($item[1], '(', true)) !== false ? $value : null,
                         'section' => ($value = strstr($item[1], '(')) !== false ? trim($value, '()') : null,
-//                        'teacher' => ($value = $item[2]) !== "" ? $value : null,
-                        'teacher' => null,
+                        'teacher' => ($value = $item[2]) !== "" ? $value : null,
+//                        'teacher' => null,
                         'day' => $currentDay,
                         'start_time' => $timeSlot[$index]['start_time'] ?? null,
                         'end_time' => $timeSlot[$index]['end_time'] ?? null,
