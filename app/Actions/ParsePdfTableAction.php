@@ -9,13 +9,12 @@ class ParsePdfTableAction
     public function execute($path): array
     {
         $jarFilePath = base_path('tabula/tabula.jar');
-        $csvData = shell_exec("java -jar {$jarFilePath} -p all -f CSV $path");
+        $csvData = shell_exec("java -jar {$jarFilePath} -p all -f CSV --lattice $path");
+
+//        var_dump($csvData);
 
         // parse CSV data into an array
         $lines = explode("\n", trim($csvData));
-
-//        var_dump($lines);
-
         $table = [];
 
         foreach ($lines as $line) {
@@ -70,8 +69,11 @@ class ParsePdfTableAction
                     return $item->values();
                 })
                 ->map(function ($item, $index) use ($currentDay, $timeSlot) {
+                    $room = isset($item[0]) ? preg_replace('/\s+/', ' ', trim($item[0])) : null;
+//                    var_dump($room);
+
                     return [
-                        'room' => $item[0] ?? null,
+                        'room' => $room,
                         'course_code' => ($value = strstr($item[1], '(', true)) !== false ? $value : null,
                         'section' => ($value = strstr($item[1], '(')) !== false ? trim($value, '()') : null,
                         'teacher' => ($value = $item[2]) !== "" ? $value : null,
