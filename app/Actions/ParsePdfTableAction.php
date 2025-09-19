@@ -13,6 +13,9 @@ class ParsePdfTableAction
 
         // parse CSV data into an array
         $lines = explode("\n", trim($csvData));
+
+//        var_dump($lines);
+
         $table = [];
 
         foreach ($lines as $line) {
@@ -53,7 +56,7 @@ class ParsePdfTableAction
 
         foreach ($table as $row) {
             if ($this->isDayRow($row)) {
-                $currentDay = $row[0];
+                $currentDay = $this->isDayRow($row);
                 continue;
             }
 
@@ -72,7 +75,6 @@ class ParsePdfTableAction
                         'course_code' => ($value = strstr($item[1], '(', true)) !== false ? $value : null,
                         'section' => ($value = strstr($item[1], '(')) !== false ? trim($value, '()') : null,
                         'teacher' => ($value = $item[2]) !== "" ? $value : null,
-//                        'teacher' => null,
                         'day' => $currentDay,
                         'start_time' => $timeSlot[$index]['start_time'] ?? null,
                         'end_time' => $timeSlot[$index]['end_time'] ?? null,
@@ -85,11 +87,17 @@ class ParsePdfTableAction
         return $data;
     }
 
-    private function isDayRow(array $row): bool
+    private function isDayRow(array $row): ?string
     {
-        $validDay = ['SATURDAY', 'SUNDAY', 'MONDAY', 'TUESDAY', 'WEDNESDAY', 'THURSDAY'];
+        $validDays = ['SATURDAY', 'SUNDAY', 'MONDAY', 'TUESDAY', 'WEDNESDAY', 'THURSDAY'];
 
-        return in_array(strtoupper($row[0]), $validDay);
+        foreach ($row as $cell) {
+            $cell = strtoupper(trim($cell));
+            if (in_array($cell, $validDays)) {
+                return $cell;
+            }
+        }
+        return null;
     }
 
     private function isTimeColumn($row): bool
